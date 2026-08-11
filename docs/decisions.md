@@ -102,6 +102,17 @@ amendments take precedence over the corresponding lines of `mvp.md`.
     This is the ONLY escape from the mutation gate (per mvp.md lines 92–96) —
     the registry replaces the empty "document it" clause with a checked gate.
 
+## TypeScript-only enforcement
+
+28. **No `.js` / `.mjs` / `.cjs` anywhere** — configs, scripts, and build tooling
+    included. `eslint.config.ts`, `stryker.config.ts`, `vitest.config.ts`, and
+    `tsconfig*.json` are the only config formats. Scripts under `scripts/` are
+    TypeScript emitted to `dist-scripts/` via `tsconfig.scripts.json`
+    (`build:scripts`) for the rare cases that need plain-Node execution.
+29. Enforced by (a) an AGENTS.md rule, (b) a CI step that fails on any tracked
+    `.js`/`.mjs`/`.cjs`, and (c) knip/lint/format on the repo. The auto-generated
+    `dist-scripts/` output is gitignored and excluded from lint/coverage/mutation.
+
 ## Operating guardrails for the loop
 
 24. Master agent (Grok) orchestrates; subagents implement well-scoped modules

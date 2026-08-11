@@ -6,3 +6,13 @@ dist/
 *.log
 .env
 .env.*
+
+# No plain JavaScript anywhere — TypeScript only (AGENTS.md).
+# These nasties keep accidentally reintroducing themselves via tooling caches.
+*.js
+*.mjs
+*.cjs
+!eslint.config.ts
+!stryker.config.ts
+!vitest.config.ts
+!tsconfig.json

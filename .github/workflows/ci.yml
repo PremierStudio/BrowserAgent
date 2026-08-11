@@ -19,6 +19,11 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: TypeScript-only (no .js/.mjs/.cjs outside generated dirs)
+        shell: bash
+        run: |
+          ! git ls-files | grep -E '\.(js|mjs|cjs)$' || exit 1
+
       - name: Typecheck
         run: npm run typecheck
 

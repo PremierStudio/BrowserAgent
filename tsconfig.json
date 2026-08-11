@@ -17,5 +17,13 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts",
+    "scripts/**/*.ts",
+    "eslint.config.ts",
+    "stryker.config.ts",
+    "vitest.config.ts",
+    "knip.config.ts"
+  ]
 }

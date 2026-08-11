@@ -1,8 +1,9 @@
 import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import prettier from 'eslint-config-prettier'
+import type { Rule } from 'eslint'
 
-const noForEach = {
+const noForEach: Rule.RuleModule = {
   meta: {
     type: 'suggestion',
     docs: { description: 'Prefer for..of over Array#forEach' },
@@ -24,7 +25,9 @@ const noForEach = {
 }
 
 export default tseslint.config(
-  { ignores: ['node_modules/', 'coverage/', 'reports/', '.stryker-tmp/', 'dist/'] },
+  {
+    ignores: ['node_modules/', 'coverage/', 'reports/', '.stryker-tmp/', 'dist/', 'dist-scripts/'],
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -46,21 +49,6 @@ export default tseslint.config(
       'local/no-for-each': 'error',
       'no-var': 'error',
       'prefer-const': 'error',
-    },
-  },
-  // Node-globals + formatting for JS config files and build scripts.
-  {
-    files: ['**/*.mjs', '**/*.cjs'],
-    languageOptions: {
-      globals: {
-        console: 'readonly',
-        process: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        require: 'readonly',
-        module: 'readonly',
-        Buffer: 'readonly',
-      },
     },
   },
   prettier,
