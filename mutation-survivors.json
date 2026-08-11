@@ -1,0 +1,4 @@
+{
+  "comment": "Pre-approved surviving mutants. Format: { \"<src file>\": [ \"<mutant id>\", ... ] }. Every entry MUST have a justification recorded in docs/decisions.md. Do not add entries without explicit review.",
+  "files": {}
+}

@@ -1,0 +1,39 @@
+{
+  "name": "browser-agent",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Unified, event-driven, visually-rich MCP browser-automation server on Puppeteer",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --no-warn-ignored",
+    "format": "prettier --check .",
+    "knip": "knip --max-issues 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "mutation": "stryker run",
+    "survivors": "node scripts/survivors.mjs",
+    "reports": "vitest run --coverage --reporter junit --outputFile reports/junit.xml",
+    "ci:survivors": "npm run mutation && npm run survivors",
+    "ci": "npm run typecheck && npm run lint && npm run format && npm run knip && npm test && npm run coverage && npm run ci:survivors"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stryker-mutator/api": "^9.6.1",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/node": "^24.13.3",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "knip": "^6.32.2",
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
+  }
+}
