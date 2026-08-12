@@ -19,6 +19,8 @@ const SERVER_VERSION = '0.0.1'
  */
 export function buildCliMain(serve: Serve): () => void {
   return () => {
-    serve(() => createServer({ name: SERVER_NAME, version: SERVER_VERSION }, buildTools()))
+    serve(() =>
+      createServer({ name: SERVER_NAME, version: SERVER_VERSION }, { tools: buildTools() }),
+    )
   }
 }
