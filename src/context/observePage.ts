@@ -12,7 +12,8 @@ function isValueBag(value: unknown): value is { value: string } {
   return isRecord(value) && typeof value.value === 'string'
 }
 
-function parseAxNode(value: unknown): AxNode | undefined {
+/** Parses one CDP AX node. Exported so tests can pin child-id filtering. */
+export function parseAxNode(value: unknown): AxNode | undefined {
   if (!isRecord(value) || typeof value.nodeId !== 'string') {
     return undefined
   }
@@ -46,7 +47,8 @@ function parseAxNode(value: unknown): AxNode | undefined {
   return node
 }
 
-function axNodesFrom(result: unknown): AxNode[] {
+/** Pulls parsed AX nodes from a CDP getFullAXTree result. */
+export function axNodesFrom(result: unknown): AxNode[] {
   if (!isRecord(result) || !Array.isArray(result.nodes)) {
     return []
   }
@@ -68,48 +70,34 @@ function loaderIdFrom(result: unknown): string {
   return typeof loaderId === 'string' ? loaderId : ''
 }
 
-function boxFromModel(result: unknown): BoundingBox | undefined {
+/** Reads a bounding box from a CDP DOM.getBoxModel result. */
+export function boxFromModel(result: unknown): BoundingBox | undefined {
   if (!isRecord(result) || !isRecord(result.model) || !Array.isArray(result.model.content)) {
     return undefined
   }
-  const content = result.model.content
+  const pending = [...result.model.content]
   const xs: number[] = []
   const ys: number[] = []
-  for (let i = 0; i + 1 < content.length; i += 2) {
-    const x = content[i]
-    const y = content[i + 1]
+  while (pending.length >= 2) {
+    const x = pending.shift()
+    const y = pending.shift()
     if (typeof x === 'number' && typeof y === 'number') {
       xs.push(x)
       ys.push(y)
     }
   }
-  let minX: number | undefined
-  let maxX: number | undefined
-  for (const x of xs) {
-    if (minX === undefined || x < minX) {
-      minX = x
-    }
-    if (maxX === undefined || x > maxX) {
-      maxX = x
-    }
-  }
-  let minY: number | undefined
-  let maxY: number | undefined
-  for (const y of ys) {
-    if (minY === undefined || y < minY) {
-      minY = y
-    }
-    if (maxY === undefined || y > maxY) {
-      maxY = y
-    }
-  }
-  if (minX === undefined || maxX === undefined || minY === undefined || maxY === undefined) {
+  if (xs.length === 0) {
     return undefined
   }
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY }
 }
 
-async function collectBoxes(page: PageLike, nodes: AxNode[]): Promise<BoxLookup> {
+/** Resolves box models for nodes that have a backendDOMNodeId. */
+export async function collectBoxes(page: PageLike, nodes: AxNode[]): Promise<BoxLookup> {
   const boxes: BoxLookup = new Map()
   for (const node of nodes) {
     if (node.backendDOMNodeId === undefined) {

@@ -67,14 +67,35 @@ describe('PuppeteerContextPage', () => {
       clock: () => now,
       quietPeriod: 40,
       timeout: 100,
-      sleep: async () => {
+      sleep: async (ms) => {
         polls += 1
-        now += 20
+        now += ms
       },
     })
     context.notifyMutation()
     await context.waitForEventsAfterAction()
-    expect(polls).toBeGreaterThan(0)
+    expect(polls).toBe(2)
+    expect(now).toBe(40)
+  })
+
+  it('stops waiting at the injected timeout while mutations continue', async () => {
+    const page = makeMockPage()
+    let now = 0
+    let polls = 0
+    const context = new PuppeteerContextPage(page, {
+      clock: () => now,
+      quietPeriod: 40,
+      timeout: 100,
+      sleep: async (ms) => {
+        polls += 1
+        now += ms
+        context.notifyMutation()
+      },
+    })
+    context.notifyMutation()
+    await context.waitForEventsAfterAction()
+    expect(polls).toBe(5)
+    expect(now).toBe(100)
   })
 
   it('emulate resolves', async () => {
@@ -109,7 +130,23 @@ describe('PuppeteerContextPage', () => {
   })
 
   it('action methods resolve', async () => {
+    const methods: string[] = []
+    const gotos: string[] = []
+    const keys: string[] = []
     const page = makeMockPage()
+    page.cdp = async (_session, method) => {
+      methods.push(method)
+      if (method === 'DOM.resolveNode') {
+        return { object: { objectId: 'obj-1' } }
+      }
+      return {}
+    }
+    page.goto = async (url) => {
+      gotos.push(url)
+    }
+    page.keyboardPress = async (key) => {
+      keys.push(key)
+    }
     const context = new PuppeteerContextPage(page)
     await expect(context.click('loader-1_1')).resolves.toBeUndefined()
     await expect(context.type('loader-1_1', 'hi')).resolves.toBeUndefined()
@@ -118,5 +155,9 @@ describe('PuppeteerContextPage', () => {
     await expect(context.select('loader-1_1', 'v')).resolves.toBeUndefined()
     await expect(context.press('Enter')).resolves.toBeUndefined()
     await expect(context.navigate('https://example.com')).resolves.toBeUndefined()
+    expect(methods.filter((method) => method === 'DOM.resolveNode')).toHaveLength(5)
+    expect(methods.filter((method) => method === 'Runtime.callFunctionOn')).toHaveLength(5)
+    expect(keys).toEqual(['Enter'])
+    expect(gotos).toEqual(['https://example.com'])
   })
 })

@@ -27,28 +27,29 @@ export class DiffTracker {
     }
 
     const rebind = rebindUids(this.last, snapshot)
-    const rebased = this.applyRebind(this.last, rebind)
+    const rebased = applyRebind(this.last, rebind)
     const result = diffSnapshots(rebased, snapshot)
     this.last = snapshot
     return result
   }
+}
 
-  private applyRebind(node: SnapshotNode, rebind: Record<string, string>): SnapshotNode {
-    const target = rebind[node.uid]
-    const copy: SnapshotNode = {
-      uid: target ?? node.uid,
-      role: node.role,
-      name: node.name,
-    }
-    if (node.value !== undefined) {
-      copy.value = node.value
-    }
-    if (node.boundingBox !== undefined) {
-      copy.boundingBox = node.boundingBox
-    }
-    if (node.children !== undefined) {
-      copy.children = node.children.map((child) => this.applyRebind(child, rebind))
-    }
-    return copy
+/** Copies a snapshot, rewriting uids from a rebind map. Optional fields stay omitted. */
+export function applyRebind(node: SnapshotNode, rebind: Record<string, string>): SnapshotNode {
+  const target = rebind[node.uid]
+  const copy: SnapshotNode = {
+    uid: target ?? node.uid,
+    role: node.role,
+    name: node.name,
   }
+  if (node.value !== undefined) {
+    copy.value = node.value
+  }
+  if (node.boundingBox !== undefined) {
+    copy.boundingBox = node.boundingBox
+  }
+  if (node.children !== undefined) {
+    copy.children = node.children.map((child) => applyRebind(child, rebind))
+  }
+  return copy
 }

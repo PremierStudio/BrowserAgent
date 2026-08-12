@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DiffTracker } from '../../src/diff/DiffTracker.js'
+import { applyRebind, DiffTracker } from '../../src/diff/DiffTracker.js'
 import type { SnapshotNode } from '../../src/snapshot/a11ySnapshot.js'
 
 function node(uid: string, overrides: Partial<SnapshotNode> = {}): SnapshotNode {
@@ -31,8 +31,7 @@ describe('DiffTracker', () => {
     const result = tracker.observe('owner', node('new-1', { role: 'button', name: 'Go' }))
     // The node is the same (fingerprint matches) but its uid changed; the
     // tracker reports the rebind rather than a remove+add.
-    expect(result.removed).toEqual([])
-    expect(result.added).toEqual([])
+    expect(result).toStrictEqual({ added: [], removed: [], changed: [] })
   })
 
   it('preserves value and bounding box across a rebind', () => {
@@ -55,9 +54,40 @@ describe('DiffTracker', () => {
         boundingBox: { x: 1, y: 2, width: 3, height: 4 },
       }),
     )
-    expect(result.removed).toEqual([])
-    expect(result.added).toEqual([])
-    expect(result.changed).toEqual([])
+    expect(result).toStrictEqual({ added: [], removed: [], changed: [] })
+  })
+
+  it('reports a box appearing after a rebind of a node that omitted one', () => {
+    const tracker = new DiffTracker('owner')
+    tracker.observe('owner', node('old-1', { role: 'textbox', name: 'Field' }))
+    const result = tracker.observe(
+      'owner',
+      node('new-1', {
+        role: 'textbox',
+        name: 'Field',
+        boundingBox: { x: 1, y: 2, width: 3, height: 4 },
+      }),
+    )
+    expect(result).toStrictEqual({
+      added: [],
+      removed: [],
+      changed: [
+        {
+          uid: 'new-1',
+          boundingBox: {
+            from: { x: 0, y: 0, width: 0, height: 0 },
+            to: { x: 1, y: 2, width: 3, height: 4 },
+          },
+        },
+      ],
+    })
+  })
+
+  it('does not invent value or box changes when both snapshots omit them', () => {
+    const tracker = new DiffTracker('owner')
+    tracker.observe('owner', node('a', { role: 'button', name: 'Go' }))
+    const result = tracker.observe('owner', node('a', { role: 'button', name: 'Go' }))
+    expect(result).toStrictEqual({ added: [], removed: [], changed: [] })
   })
 
   it('reports a removed node after it disappears', () => {
@@ -74,5 +104,26 @@ describe('DiffTracker', () => {
     // The second observation changed x -> y; the third sees no change.
     const result = tracker.observe('owner', node('a', { value: 'y' }))
     expect(result.changed).toEqual([])
+  })
+})
+
+describe('applyRebind', () => {
+  it('omits value and boundingBox when the source node omitted them', () => {
+    const copy = applyRebind(node('old', { role: 'button', name: 'Go' }), { old: 'new' })
+    expect(copy).toEqual({ uid: 'new', role: 'button', name: 'Go' })
+    expect('value' in copy).toBe(false)
+    expect('boundingBox' in copy).toBe(false)
+  })
+
+  it('copies value and boundingBox only when they are defined', () => {
+    const copy = applyRebind(
+      node('a', {
+        value: 'typed',
+        boundingBox: { x: 1, y: 2, width: 3, height: 4 },
+      }),
+      {},
+    )
+    expect(copy.value).toBe('typed')
+    expect(copy.boundingBox).toEqual({ x: 1, y: 2, width: 3, height: 4 })
   })
 })

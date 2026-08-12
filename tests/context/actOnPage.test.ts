@@ -11,6 +11,7 @@ import {
 import type { PageLike } from '../../src/context/ContextPage.js'
 
 interface CdpCall {
+  session: string
   method: string
   params: unknown
 }
@@ -31,8 +32,8 @@ function recordingPage(): PageLike & {
     gotos,
     keys,
     accessibility: { snapshot: async () => ({}) },
-    cdp: async (_session, method, params) => {
-      cdpCalls.push({ method, params })
+    cdp: async (session, method, params) => {
+      cdpCalls.push({ session, method, params })
       if (method === 'DOM.resolveNode') {
         return { object: { objectId: 'obj-1' } }
       }
@@ -57,12 +58,15 @@ describe('actOnPage', () => {
     const page = recordingPage()
     await clickUid(page, 'loader-1_42')
     expect(page.cdpCalls).toContainEqual({
+      session: 'page',
       method: 'DOM.resolveNode',
       params: { backendNodeId: 42 },
     })
     const call = page.cdpCalls.find((c) => c.method === 'Runtime.callFunctionOn')
-    expect(call?.params).toMatchObject({ objectId: 'obj-1' })
-    expect(JSON.stringify(call?.params)).toMatch(/click/)
+    expect(call?.params).toEqual({
+      objectId: 'obj-1',
+      functionDeclaration: 'function() { this.click(); }',
+    })
   })
 
   it('type focuses the node and inserts text', async () => {
@@ -107,5 +111,38 @@ describe('actOnPage', () => {
     const page = recordingPage()
     page.cdp = async () => ({})
     await expect(clickUid(page, 'loader-1_42')).rejects.toThrow(/resolve/i)
+  })
+
+  it('throws when resolveNode is null or objectId is not a string', async () => {
+    const payloads: unknown[] = [
+      null,
+      { object: null },
+      { object: {} },
+      { object: { objectId: 1 } },
+    ]
+    for (const resolved of payloads) {
+      const page = recordingPage()
+      page.cdp = async (session, method, params) => {
+        page.cdpCalls.push({ session, method, params })
+        return resolved
+      }
+      await expect(clickUid(page, 'loader-1_42')).rejects.toThrow('Failed to resolve element')
+      expect(page.cdpCalls).toEqual([
+        { session: 'page', method: 'DOM.resolveNode', params: { backendNodeId: 42 } },
+      ])
+    }
+  })
+
+  it('sends both CDP calls on the page session', async () => {
+    const page = recordingPage()
+    await clickUid(page, 'loader-1_42')
+    expect(page.cdpCalls.map((call) => call.session)).toEqual(['page', 'page'])
+    expect(page.cdpCalls[0]).toEqual({
+      session: 'page',
+      method: 'DOM.resolveNode',
+      params: { backendNodeId: 42 },
+    })
+    expect(page.cdpCalls[1]?.session).toBe('page')
+    expect(page.cdpCalls[1]?.method).toBe('Runtime.callFunctionOn')
   })
 })

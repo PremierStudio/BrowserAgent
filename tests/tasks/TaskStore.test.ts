@@ -76,4 +76,14 @@ describe('TaskStore', () => {
     const b = store.create('b')
     expect(a.id).not.toBe(b.id)
   })
+
+  it('default ids are task-<base36>-<6 alphanumerics> with no decimal prefix', () => {
+    const store = new TaskStore()
+    const ids = [store.create('a').id, store.create('b').id, store.create('c').id]
+    for (const id of ids) {
+      expect(id).toMatch(/^task-[0-9a-z]+-[0-9a-z]{6}$/)
+      expect(id.includes('.')).toBe(false)
+    }
+    expect(new Set(ids).size).toBe(ids.length)
+  })
 })

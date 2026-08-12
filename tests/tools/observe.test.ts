@@ -33,7 +33,9 @@ describe('observeTool', () => {
     expect(observeTool.category).toBe(ToolCategory.Observe)
     expect(observeTool.readOnly).toBe(true)
     expect(observeTool.experimental).toBe(false)
-    expect(observeTool.description.length).toBeGreaterThan(0)
+    expect(observeTool.description).toBe(
+      'Observe the current page: a11y snapshot, screenshot, and uid→box overlay.',
+    )
   })
 
   it('has a zod input schema', () => {
@@ -67,5 +69,20 @@ describe('observeTool', () => {
     await expect(
       observeTool.handler({}, { experimental: false, page: 'not-a-page' }),
     ).rejects.toThrow(/requires a ContextPage/i)
+  })
+
+  it('throws when the page is null', async () => {
+    await expect(observeTool.handler({}, { experimental: false, page: null })).rejects.toThrow(
+      'observe requires a ContextPage',
+    )
+  })
+
+  it('throws when the page has observe but it is not a function', async () => {
+    await expect(
+      observeTool.handler({}, { experimental: false, page: { observe: 1 } }),
+    ).rejects.toThrow('observe requires a ContextPage')
+    await expect(
+      observeTool.handler({}, { experimental: false, page: { observe: null } }),
+    ).rejects.toThrow('observe requires a ContextPage')
   })
 })

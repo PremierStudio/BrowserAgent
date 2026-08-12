@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { EventBuffer } from '../../src/events/EventBuffer.js'
-import { EventCollector, type EventSource } from '../../src/events/EventCollector.js'
+import { asPayload, EventCollector, type EventSource } from '../../src/events/EventCollector.js'
 
 interface Handler {
   (payload: unknown): void
@@ -21,6 +21,19 @@ function makeSource(): EventSource & { emit: (event: string, payload: unknown) =
     },
   }
 }
+
+describe('asPayload', () => {
+  it('copies only string type and kind fields', () => {
+    expect(asPayload({ type: 1, text: 'hi', kind: 4, target: 'div' })).toEqual({
+      text: 'hi',
+      target: 'div',
+    })
+    expect(asPayload({ type: 'error', kind: 'removed' })).toEqual({
+      type: 'error',
+      kind: 'removed',
+    })
+  })
+})
 
 describe('EventCollector', () => {
   it('collects console events', () => {
@@ -172,6 +185,25 @@ describe('EventCollector', () => {
     source.emit('requestfailed', {})
     source.emit('framenavigated', {})
     source.emit('dommutated', {})
+    expect(buffer.all()).toEqual([
+      { type: 'console', timestamp: 100, level: 'log', text: '' },
+      { type: 'network', timestamp: 100, url: '', status: 0, failed: false },
+      { type: 'network', timestamp: 100, url: '', status: 0, failed: true },
+      { type: 'navigation', timestamp: 100, url: '' },
+      { type: 'dom', timestamp: 100, kind: 'added', target: '' },
+    ])
+  })
+
+  it('ignores payload fields of the wrong runtime type', () => {
+    const source = makeSource()
+    const buffer = new EventBuffer(10)
+    const collector = new EventCollector(source, buffer, () => 100)
+    collector.start()
+    source.emit('console', { type: 1, text: 2 })
+    source.emit('response', { url: 3, status: '200' })
+    source.emit('requestfailed', { url: true })
+    source.emit('framenavigated', { url: { href: 'x' } })
+    source.emit('dommutated', { kind: 4, target: 5 })
     expect(buffer.all()).toEqual([
       { type: 'console', timestamp: 100, level: 'log', text: '' },
       { type: 'network', timestamp: 100, url: '', status: 0, failed: false },

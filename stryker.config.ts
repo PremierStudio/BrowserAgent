@@ -14,7 +14,7 @@ const config: StrykerConfig = {
   // Stryker 9 auto-detects only json/js/mjs/cjs; this file must be passed
   // as `stryker run stryker.config.ts` (see package.json "mutation").
   vitest: { configFile: 'vitest.stryker.config.ts' },
-  mutate: ['src/**/*.ts'],
+  mutate: ['src/**/*.ts', '!src/cli.ts'],
   coverageAnalysis: 'perTest',
   concurrency: 4,
   timeoutMS: 30000,

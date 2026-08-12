@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { McpServer } from '@modelcontextprotocol/server'
+import { McpServer, InMemoryTransport } from '@modelcontextprotocol/server'
 import {
   initServer,
   registerTools,
@@ -26,6 +26,62 @@ function makeCaller(): ToolCaller {
   return { call: async () => 'pong' }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+async function connectClient(server: McpServer): Promise<{
+  request: (
+    id: number,
+    method: string,
+    params?: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>
+  init: Record<string, unknown>
+  close: () => Promise<void>
+}> {
+  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair()
+  await server.connect(serverTransport)
+  await clientTransport.start()
+  let pending: ((message: Record<string, unknown>) => void) | undefined
+  clientTransport.onmessage = (message) => {
+    if (!isRecord(message) || !('id' in message) || pending === undefined) {
+      return
+    }
+    pending(message)
+  }
+  async function request(id: number, method: string, params?: Record<string, unknown>) {
+    return new Promise<Record<string, unknown>>((resolve, reject) => {
+      pending = resolve
+      const payload: {
+        jsonrpc: '2.0'
+        id: number
+        method: string
+        params?: Record<string, unknown>
+      } = { jsonrpc: '2.0', id, method }
+      if (params !== undefined) {
+        payload.params = params
+      }
+      void clientTransport.send(payload).catch(reject)
+    })
+  }
+  const init = resultOf(
+    await request(1, 'initialize', {
+      protocolVersion: '2026-07-28',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '0.0.1' },
+    }),
+  )
+  await clientTransport.send({ jsonrpc: '2.0', method: 'notifications/initialized' })
+  return { request, init, close: () => server.close() }
+}
+
+function resultOf(message: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(message.result)) {
+    throw new Error('expected json-rpc result object')
+  }
+  return message.result
+}
+
 describe('toToolAnnotations', () => {
   it('marks read-only tools with readOnlyHint', () => {
     expect(toToolAnnotations(true)).toEqual({ readOnlyHint: true })
@@ -37,7 +93,7 @@ describe('toToolAnnotations', () => {
 })
 
 describe('registerTools', () => {
-  it('registers each tool on the server', () => {
+  it('registers each tool on the server', async () => {
     const server = new McpServer(
       { name: 'test', version: '0.0.1' },
       { capabilities: { tools: {} } },
@@ -45,9 +101,24 @@ describe('registerTools', () => {
     registerTools(server, [makeTool({ name: 'ping' })], makeCaller())
     expect(server.toolInputSchemaJson('ping')).toBeDefined()
     expect(server.toolInputSchemaJson('nope')).toBeUndefined()
+    const client = await connectClient(server)
+    const listed = resultOf(await client.request(2, 'tools/list', {}))
+    expect(listed.tools).toEqual([
+      expect.objectContaining({
+        name: 'ping',
+        title: 'ping',
+        description: 'Pings',
+        annotations: { readOnlyHint: true },
+        inputSchema: expect.objectContaining({
+          type: 'object',
+          properties: { value: { type: 'string' } },
+        }),
+      }),
+    ])
+    await client.close()
   })
 
-  it('exposes the tool description and annotations through the server', () => {
+  it('exposes the tool description and annotations through the server', async () => {
     const server = new McpServer(
       { name: 'test', version: '0.0.1' },
       { capabilities: { tools: {} } },
@@ -59,6 +130,21 @@ describe('registerTools', () => {
     )
     const schema = server.toolInputSchemaJson('ping')
     expect(schema).toBeDefined()
+    expect(schema).toMatchObject({
+      type: 'object',
+      properties: { value: { type: 'string' } },
+    })
+    const client = await connectClient(server)
+    const listed = resultOf(await client.request(2, 'tools/list', {}))
+    expect(listed.tools).toEqual([
+      expect.objectContaining({
+        name: 'ping',
+        title: 'ping',
+        description: 'Pings',
+        annotations: { readOnlyHint: true },
+      }),
+    ])
+    await client.close()
   })
 
   it('dispatches the callback to the tool caller', async () => {
@@ -73,16 +159,23 @@ describe('registerTools', () => {
         return `${name}-result`
       },
     })
-    // The SDK validates that the tool is registered; the callback dispatch is
-    // exercised through registerTools' wiring (the arg is passed through).
-    expect(called).toBe(0)
+    const client = await connectClient(server)
+    const result = resultOf(
+      await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } }),
+    )
+    expect(called).toBe(1)
+    expect(result.structuredContent).toEqual({ value: 'ping-result' })
     expect(server.toolInputSchemaJson('ping')).toBeDefined()
+    await client.close()
   })
 })
 
 describe('initServer', () => {
-  it('creates a server with the implementation info', () => {
+  it('creates a server with the implementation info', async () => {
     const server = initServer('browser-agent', '0.0.1')
     expect(server).toBeInstanceOf(McpServer)
+    const client = await connectClient(server)
+    expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    await client.close()
   })
 })

@@ -143,6 +143,7 @@ describe('acceptDialog', () => {
   it('handles a dialog without promptText', async () => {
     const page = recordingPage()
     await acceptDialog(page, true)
+    expect(page.cdpCalls).toHaveLength(1)
     expect(page.cdpCalls).toEqual([
       {
         session: 'page',
@@ -150,14 +151,19 @@ describe('acceptDialog', () => {
         params: { accept: true },
       },
     ])
+    expect(page.cdpCalls[0]?.params).not.toHaveProperty('promptText')
+    expect(Object.keys(page.cdpCalls[0]?.params ?? {})).toEqual(['accept'])
   })
 
   it('handles a dismissed dialog without promptText', async () => {
     const page = recordingPage()
     await acceptDialog(page, false)
+    expect(page.cdpCalls).toHaveLength(1)
     expect(page.cdpCalls[0]?.session).toBe('page')
     expect(page.cdpCalls[0]?.method).toBe('Page.handleJavaScriptDialog')
     expect(page.cdpCalls[0]?.params).toEqual({ accept: false })
+    expect(page.cdpCalls[0]?.params).not.toHaveProperty('promptText')
+    expect(Object.keys(page.cdpCalls[0]?.params ?? {})).toEqual(['accept'])
   })
 
   it('includes promptText when provided', async () => {

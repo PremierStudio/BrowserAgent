@@ -37,6 +37,34 @@ describe('TaskRunner', () => {
     const task = await runner.run('run-flow', async () => ({ ok: true }))
     const outcome = runner.checkWait(task.id, 0, 1000)
     expect(outcome).toEqual(task)
+    expect(task.status).toBe('completed')
+  })
+
+  it('checkWait treats a failed task as terminal', async () => {
+    const store = new TaskStore(() => 'task-1')
+    const runner = new TaskRunner(store)
+    const task = await runner.run('run-flow', async () => {
+      throw new Error('boom')
+    })
+    expect(task.status).toBe('failed')
+    expect(runner.checkWait(task.id, 0, 1000)).toEqual(task)
+  })
+
+  it('checkWait treats a cancelled task as terminal', () => {
+    const store = new TaskStore(() => 'task-1')
+    const runner = new TaskRunner(store)
+    const created = store.create('run-flow')
+    const cancelled = store.cancel(created.id)
+    expect(cancelled.status).toBe('cancelled')
+    expect(runner.checkWait(cancelled.id, 0, 1000)).toEqual(cancelled)
+  })
+
+  it('checkWait does not treat input_required as terminal', () => {
+    const store = new TaskStore(() => 'task-1')
+    const runner = new TaskRunner(store)
+    const created = store.create('run-flow')
+    store.update(created.id, { status: 'input_required' })
+    expect(runner.checkWait(created.id, 50, 100)).toBe('waiting')
   })
 
   it('checkWait returns timeout once the deadline passes', async () => {
@@ -52,6 +80,18 @@ describe('TaskRunner', () => {
     const runner = new TaskRunner(store)
     const task = store.create('run-flow')
     expect(runner.checkWait(task.id, 50, 100)).toBe('waiting')
+  })
+
+  it('checkWait returns waiting for an unknown id before the deadline', () => {
+    const store = new TaskStore(() => 'task-1')
+    const runner = new TaskRunner(store)
+    expect(runner.checkWait('missing', 50, 100)).toBe('waiting')
+  })
+
+  it('checkWait returns timeout for an unknown id at the deadline', () => {
+    const store = new TaskStore(() => 'task-1')
+    const runner = new TaskRunner(store)
+    expect(runner.checkWait('missing', 100, 100)).toBe('timeout')
   })
 
   it('wait() cancels a task that never completes', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { BrowserSession } from '../../src/session/BrowserSession.js'
+import { BrowserSession, sessionWaitAfterAction } from '../../src/session/BrowserSession.js'
 import { ActionLog } from '../../src/actions/ActionLog.js'
 import { DiffTracker } from '../../src/diff/DiffTracker.js'
 import { EventBuffer } from '../../src/events/EventBuffer.js'
@@ -59,6 +59,15 @@ const second: SnapshotNode = {
   name: 'B',
   children: [{ uid: 'btn', role: 'button', name: 'Go' }],
 }
+
+describe('sessionWaitAfterAction', () => {
+  it('waits on the page and reports the DOM as stable', async () => {
+    const calls: string[] = []
+    const page = pageWith(first, calls)
+    await expect(sessionWaitAfterAction(page)).resolves.toBe(true)
+    expect(calls).toEqual(['wait'])
+  })
+})
 
 describe('BrowserSession', () => {
   it('returns the first observe with an empty diff and buffered events', async () => {
@@ -165,5 +174,6 @@ describe('BrowserSession', () => {
     await session.click('btn')
     expect(session.actionLog.all()).toHaveLength(1)
     expect(session.actionLog.all()[0]?.action).toBe('click')
+    expect(session.actionLog.all()[0]?.timestamp).toBe(0)
   })
 })

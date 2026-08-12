@@ -28,7 +28,10 @@ describe('createHttpHandler', () => {
     const response = await handler.fetch(
       new Request('http://localhost/mcp', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+        },
         body: JSON.stringify({
           jsonrpc: '2.0',
           id: 1,
@@ -41,7 +44,10 @@ describe('createHttpHandler', () => {
         }),
       }),
     )
-    expect(response.status).toBeGreaterThanOrEqual(200)
+    expect(response.status).toBe(200)
     expect(built).toBeGreaterThan(0)
+    const body = await response.text()
+    expect(body).toContain('"name":"browser-agent"')
+    expect(body).toContain('"version":"0.0.1"')
   })
 })

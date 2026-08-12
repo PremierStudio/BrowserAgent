@@ -115,14 +115,11 @@ describe('toPageLike', () => {
   })
 
   it('rejects a screenshot that is not a string or Uint8Array', async () => {
+    const message = 'screenshot() returned an unsupported type; expected a string or Uint8Array'
     const numberPage = recordingPage({ screenshot: 42 })
-    await expect(toPageLike(numberPage.view).screenshot()).rejects.toThrow(
-      /unsupported type|string|Uint8Array/i,
-    )
+    await expect(toPageLike(numberPage.view).screenshot()).rejects.toThrow(message)
     const objectPage = recordingPage({ screenshot: { png: true } })
-    await expect(toPageLike(objectPage.view).screenshot()).rejects.toThrow(
-      /unsupported type|string|Uint8Array/i,
-    )
+    await expect(toPageLike(objectPage.view).screenshot()).rejects.toThrow(message)
   })
 
   it('delegates evaluate without an arg', async () => {
@@ -187,20 +184,20 @@ describe('toPageLike', () => {
       () => undefined,
     )
     expect(names).toEqual(['__baIngest'])
-    await expect(exposeFunctionFromUnknown({}, 'x', () => undefined)).rejects.toThrow(
-      /cannot expose/i,
-    )
-    await expect(exposeFunctionFromUnknown(null, 'x', () => undefined)).rejects.toThrow(
-      /cannot expose/i,
-    )
+    const rejected: unknown[] = [{}, null, undefined, 1, 'page', true]
+    for (const page of rejected) {
+      await expect(exposeFunctionFromUnknown(page, 'x', () => undefined)).rejects.toThrow(
+        'page cannot expose functions',
+      )
+    }
   })
 
   it('toPageLikeFromUnknown accepts a structural page and rejects a non-page', async () => {
     const fake = recordingPage()
     const page = toPageLikeFromUnknown(fake.view)
     expect(await page.screenshot()).toBe('data:image/png;base64,ok')
-    expect(() => toPageLikeFromUnknown({})).toThrow(/not a puppeteer page/i)
-    expect(() => toPageLikeFromUnknown(null)).toThrow(/not a puppeteer page/i)
+    expect(() => toPageLikeFromUnknown({})).toThrow('not a puppeteer page')
+    expect(() => toPageLikeFromUnknown(null)).toThrow('not a puppeteer page')
   })
 
   it('reuses one CDP session across calls so objectIds stay valid', async () => {
@@ -219,5 +216,62 @@ describe('toPageLike', () => {
     expect(fake.sessionsCreated).toBe(1)
     expect(fake.sendCalls).toHaveLength(1)
     expect(fake.sendCalls[0]?.method).toBe('Page.enable')
+  })
+})
+
+function validUnknownPage(overrides: Record<string, unknown> = {}): unknown {
+  return {
+    accessibility: { snapshot: async () => ({}) },
+    screenshot: async () => 'data:image/png;base64,ok',
+    evaluate: async () => undefined,
+    goto: async () => undefined,
+    keyboard: { press: async () => undefined },
+    createCDPSession: async () => ({ send: async () => ({}) }),
+    ...overrides,
+  }
+}
+
+describe('toPageLikeFromUnknown guards', () => {
+  it('rejects a page missing any required function', () => {
+    const rejected: unknown[] = [
+      validUnknownPage({ screenshot: 1 }),
+      validUnknownPage({ evaluate: 1 }),
+      validUnknownPage({ goto: 1 }),
+      validUnknownPage({ createCDPSession: 1 }),
+      validUnknownPage({ keyboard: 1 }),
+      validUnknownPage({ keyboard: {} }),
+      validUnknownPage({ keyboard: { press: 1 } }),
+      validUnknownPage({ keyboard: null }),
+      validUnknownPage({ accessibility: 1 }),
+      validUnknownPage({ accessibility: {} }),
+      validUnknownPage({ accessibility: { snapshot: 1 } }),
+      validUnknownPage({ accessibility: null }),
+      { createCDPSession: async () => ({ send: async () => ({}) }) },
+      {
+        keyboard: { press: async () => undefined },
+        createCDPSession: async () => ({ send: async () => ({}) }),
+      },
+      {
+        goto: async () => undefined,
+        keyboard: { press: async () => undefined },
+        createCDPSession: async () => ({ send: async () => ({}) }),
+      },
+      {
+        evaluate: async () => undefined,
+        goto: async () => undefined,
+        keyboard: { press: async () => undefined },
+        createCDPSession: async () => ({ send: async () => ({}) }),
+      },
+      {
+        screenshot: async () => 'x',
+        evaluate: async () => undefined,
+        goto: async () => undefined,
+        keyboard: { press: async () => undefined },
+        createCDPSession: async () => ({ send: async () => ({}) }),
+      },
+    ]
+    for (const page of rejected) {
+      expect(() => toPageLikeFromUnknown(page)).toThrow('not a puppeteer page')
+    }
   })
 })

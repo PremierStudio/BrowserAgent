@@ -23,7 +23,8 @@ describe('ActionRunner', () => {
     expect(clicked).toBe(true)
     expect(waited).toBe(true)
     expect(result).toBe(true)
-    expect(log.all()).toEqual([{ action: 'click', uid: 'loader-1_42', timestamp: 100 }])
+    expect(log.all()).toStrictEqual([{ action: 'click', uid: 'loader-1_42', timestamp: 100 }])
+    expect(Object.hasOwn(log.all()[0] ?? {}, 'box')).toBe(false)
   })
 
   it('records a box when provided', async () => {
@@ -43,8 +44,7 @@ describe('ActionRunner', () => {
     const runner = new ActionRunner(log, { wait: async () => false }, () => 100)
     const result = await runner.run('click', 'loader-1_42', async () => undefined)
     expect(result).toBe(false)
-    // The action is still logged even on a stability timeout.
-    expect(log.all()).toHaveLength(1)
+    expect(log.all()).toStrictEqual([{ action: 'click', uid: 'loader-1_42', timestamp: 100 }])
   })
 
   it('propagates action errors', async () => {

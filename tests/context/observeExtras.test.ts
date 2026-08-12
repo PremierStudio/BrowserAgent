@@ -3,7 +3,9 @@ import type { PageLike } from '../../src/context/ContextPage.js'
 import {
   collectZIndexes,
   enableAccessibility,
+  objectIdFrom,
   readPageState,
+  zFromCall,
 } from '../../src/context/observeExtras.js'
 
 interface EvalCall {
@@ -61,8 +63,7 @@ describe('readPageState', () => {
     const state = await readPageState(page)
     expect(state).toEqual({ url: 'https://example.com/', title: 'Example' })
     expect(page.evalCalls).toHaveLength(1)
-    expect(page.evalCalls[0]?.fn).toMatch(/location\.href/)
-    expect(page.evalCalls[0]?.fn).toMatch(/document\.title/)
+    expect(page.evalCalls[0]?.fn).toBe('({ url: location.href, title: document.title })')
     expect(page.evalCalls[0]?.arg).toBeUndefined()
   })
 
@@ -179,5 +180,109 @@ describe('collectZIndexes', () => {
     }
     const result = await collectZIndexes(page, [9])
     expect(result.size).toBe(0)
+  })
+
+  it('does not call Runtime.callFunctionOn when resolveNode has no string objectId', async () => {
+    const payloads: unknown[] = [
+      null,
+      {},
+      { object: null },
+      { object: {} },
+      { object: { objectId: 1 } },
+    ]
+    for (const resolved of payloads) {
+      const page = fakePage({})
+      page.cdp = async (session, method, params) => {
+        page.cdpCalls.push({ session, method, params })
+        if (method === 'DOM.resolveNode') {
+          return resolved
+        }
+        return { result: { value: 5 } }
+      }
+      const result = await collectZIndexes(page, [4])
+      expect(result.size).toBe(0)
+      expect(page.cdpCalls.map((c) => c.method)).toEqual(['DOM.resolveNode'])
+      expect(page.cdpCalls[0]?.session).toBe('page')
+      expect(page.cdpCalls[0]?.params).toEqual({ backendNodeId: 4 })
+    }
+  })
+
+  it('sends page-session CDP params including returnByValue true', async () => {
+    const page = fakePage({})
+    page.cdp = async (session, method, params) => {
+      page.cdpCalls.push({ session, method, params })
+      if (method === 'DOM.resolveNode') {
+        return { object: { objectId: 'obj-9' } }
+      }
+      if (method === 'Runtime.callFunctionOn') {
+        return { result: { value: 3 } }
+      }
+      return {}
+    }
+    const result = await collectZIndexes(page, [9])
+    expect([...result.entries()]).toEqual([[9, 3]])
+    expect(page.cdpCalls).toEqual([
+      { session: 'page', method: 'DOM.resolveNode', params: { backendNodeId: 9 } },
+      {
+        session: 'page',
+        method: 'Runtime.callFunctionOn',
+        params: {
+          objectId: 'obj-9',
+          functionDeclaration: 'function() { return getComputedStyle(this).zIndex }',
+          returnByValue: true,
+        },
+      },
+    ])
+  })
+
+  it('omits z-index when callFunctionOn is not a record with a result record', async () => {
+    const payloads: unknown[] = [null, {}, { result: null }, { result: 1 }]
+    for (const called of payloads) {
+      const page = fakePage({})
+      page.cdp = async (_session, method) => {
+        if (method === 'DOM.resolveNode') {
+          return { object: { objectId: 'obj' } }
+        }
+        return called
+      }
+      expect((await collectZIndexes(page, [1])).size).toBe(0)
+    }
+  })
+
+  it('omits z-index when the computed value is null or an array', async () => {
+    const values: unknown[] = [null, []]
+    for (const value of values) {
+      const page = fakePage({})
+      page.cdp = async (_session, method) => {
+        if (method === 'DOM.resolveNode') {
+          return { object: { objectId: 'obj' } }
+        }
+        return { result: { value } }
+      }
+      expect((await collectZIndexes(page, [1])).size).toBe(0)
+    }
+  })
+})
+
+describe('objectIdFrom', () => {
+  it('returns undefined for missing or non-string object ids', () => {
+    expect(objectIdFrom(null)).toBeUndefined()
+    expect(objectIdFrom({})).toBeUndefined()
+    expect(objectIdFrom({ object: null })).toBeUndefined()
+    expect(objectIdFrom({ object: {} })).toBeUndefined()
+    expect(objectIdFrom({ object: { objectId: 1 } })).toBeUndefined()
+    expect(objectIdFrom({ object: { objectId: 'obj-1' } })).toBe('obj-1')
+  })
+})
+
+describe('zFromCall', () => {
+  it('returns undefined unless result.result.value is a finite number or numeric string', () => {
+    expect(zFromCall(null)).toBeUndefined()
+    expect(zFromCall({})).toBeUndefined()
+    expect(zFromCall({ result: null })).toBeUndefined()
+    expect(zFromCall({ result: {} })).toBeUndefined()
+    expect(zFromCall({ result: { value: 'auto' } })).toBeUndefined()
+    expect(zFromCall({ result: { value: 3 } })).toBe(3)
+    expect(zFromCall({ result: { value: '4' } })).toBe(4)
   })
 })

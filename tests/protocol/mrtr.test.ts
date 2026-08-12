@@ -7,9 +7,23 @@ describe('confirmGate', () => {
   it('returns an input_required result with the confirmation elicit', () => {
     const result = confirmGate('Submit payment?', 'state-1')
     expect(isInputRequiredResult(result)).toBe(true)
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       resultType: 'input_required',
       requestState: 'state-1',
+      inputRequests: {
+        confirm: {
+          method: 'elicitation/create',
+          params: {
+            message: 'Submit payment?',
+            mode: 'form',
+            requestedSchema: {
+              type: 'object',
+              properties: { confirm: { type: 'boolean' } },
+              required: ['confirm'],
+            },
+          },
+        },
+      },
     })
   })
 
@@ -18,6 +32,18 @@ describe('confirmGate', () => {
     const requests = result.inputRequests
     expect(requests).toBeDefined()
     expect(requests).toHaveProperty('confirm')
+    expect(requests?.confirm).toEqual({
+      method: 'elicitation/create',
+      params: {
+        message: 'Submit payment?',
+        mode: 'form',
+        requestedSchema: {
+          type: 'object',
+          properties: { confirm: { type: 'boolean' } },
+          required: ['confirm'],
+        },
+      },
+    })
   })
 })
 
@@ -29,6 +55,15 @@ describe('isConfirmed', () => {
   it('returns false when confirm is missing', () => {
     expect(isConfirmed(undefined)).toBe(false)
     expect(isConfirmed({})).toBe(false)
+  })
+
+  it('returns false for null, primitives, and arrays', () => {
+    expect(isConfirmed(null)).toBe(false)
+    expect(isConfirmed(1)).toBe(false)
+    expect(isConfirmed('confirm')).toBe(false)
+    expect(isConfirmed(true)).toBe(false)
+    expect(isConfirmed(false)).toBe(false)
+    expect(isConfirmed([])).toBe(false)
   })
 
   it('returns false when confirm is declined', () => {
@@ -59,6 +94,24 @@ describe('toCallToolResult', () => {
   it('passes an input_required result through unchanged', () => {
     const gate = confirmGate('ok?', 's')
     expect(toCallToolResult(gate)).toBe(gate)
+    expect(toCallToolResult(gate)).toEqual({
+      resultType: 'input_required',
+      requestState: 's',
+      inputRequests: {
+        confirm: {
+          method: 'elicitation/create',
+          params: {
+            message: 'ok?',
+            mode: 'form',
+            requestedSchema: {
+              type: 'object',
+              properties: { confirm: { type: 'boolean' } },
+              required: ['confirm'],
+            },
+          },
+        },
+      },
+    })
   })
 
   it('wraps a primitive result under a value key', () => {

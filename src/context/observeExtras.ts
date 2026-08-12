@@ -13,21 +13,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isFiniteNumber(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value)
+  return Number.isFinite(value)
 }
 
 function isPageState(value: unknown): value is PageState {
   return isRecord(value) && typeof value.url === 'string' && typeof value.title === 'string'
 }
 
-function objectIdFrom(result: unknown): string | undefined {
+/** Reads a CDP remote objectId. Exported so tests can pin the guard. */
+export function objectIdFrom(result: unknown): string | undefined {
   if (!isRecord(result) || !isRecord(result.object) || typeof result.object.objectId !== 'string') {
     return undefined
   }
   return result.object.objectId
 }
 
-function zFromCall(result: unknown): number | undefined {
+/** Reads a numeric z-index from Runtime.callFunctionOn. */
+export function zFromCall(result: unknown): number | undefined {
   if (!isRecord(result) || !isRecord(result.result)) {
     return undefined
   }
@@ -86,7 +88,7 @@ export async function collectZIndexes(
         map.set(id, z)
       }
     } catch {
-      continue
+      // Node may be detached. Skip it and keep collecting the rest.
     }
   }
   return map

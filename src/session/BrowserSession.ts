@@ -22,6 +22,12 @@ export interface SessionOptions {
 
 const OWNER = 'session'
 
+/** Act-then-wait adapter: wait for the page, then report the DOM as stable. */
+export async function sessionWaitAfterAction(page: ContextPage): Promise<boolean> {
+  await page.waitForEventsAfterAction()
+  return true
+}
+
 /**
  * Composition root for one browser tab: wraps a ContextPage with the diff
  * tracker, event buffer, and act-then-wait action runner so observe returns
@@ -42,10 +48,7 @@ export class BrowserSession implements ContextPage {
     this.runner = new ActionRunner(
       this.log,
       {
-        wait: async () => {
-          await this.page.waitForEventsAfterAction()
-          return true
-        },
+        wait: () => sessionWaitAfterAction(this.page),
       },
       options.clock ?? (() => 0),
     )

@@ -38,6 +38,17 @@ describe('buildRawTree', () => {
   it('omits the bounding box when absent from the lookup', () => {
     const root = buildRawTree([axNode({ backendDOMNodeId: 99 })], boxes, 'loader-1')
     expect(root.boundingBox).toBeUndefined()
+    expect(root).not.toHaveProperty('boundingBox')
+  })
+
+  it('does not look up a box when backendDOMNodeId is missing', () => {
+    const boxed = new Map<number, { x: number; y: number; width: number; height: number }>([
+      [0, { x: 9, y: 9, width: 9, height: 9 }],
+    ])
+    Map.prototype.set.call(boxed, undefined, { x: 1, y: 2, width: 3, height: 4 })
+    const root = buildRawTree([axNode({ backendDOMNodeId: undefined })], boxed, 'loader-1')
+    expect(root).not.toHaveProperty('boundingBox')
+    expect(root.backendDOMNodeId).toBe(0)
   })
 
   it('connects children by childIds', () => {
@@ -89,6 +100,35 @@ describe('buildRawTree', () => {
     expect(root.children?.[0]?.name).toBe('Go')
   })
 
+  it('promotes visible descendants through two levels of ignored wrappers', () => {
+    const nodes = [
+      axNode({
+        nodeId: '1',
+        role: { value: 'RootWebArea' },
+        name: { value: 'Page' },
+        childIds: ['2'],
+      }),
+      axNode({ nodeId: '2', ignored: true, childIds: ['3'] }),
+      axNode({ nodeId: '3', ignored: true, childIds: ['4', '5'] }),
+      axNode({
+        nodeId: '4',
+        role: { value: 'button' },
+        name: { value: 'Go' },
+        backendDOMNodeId: 2,
+      }),
+      axNode({
+        nodeId: '5',
+        role: { value: 'link' },
+        name: { value: 'Next' },
+        backendDOMNodeId: 1,
+      }),
+    ]
+    const root = buildRawTree(nodes, boxes, 'loader-1')
+    expect(root.children).toHaveLength(2)
+    expect(root.children?.map((child) => child.role)).toEqual(['button', 'link'])
+    expect(root.children?.map((child) => child.name)).toEqual(['Go', 'Next'])
+  })
+
   it('includes the value when present', () => {
     const root = buildRawTree([axNode({ value: { value: 'hello' } })], boxes, 'loader-1')
     expect(root.value).toBe('hello')
@@ -108,6 +148,19 @@ describe('buildRawTree', () => {
   it('omits zIndex when absent from the lookup', () => {
     const root = buildRawTree([axNode({ backendDOMNodeId: 1 })], boxes, 'loader-1')
     expect(root.zIndex).toBeUndefined()
+    expect(root).not.toHaveProperty('zIndex')
+  })
+
+  it('does not look up a zIndex when backendDOMNodeId is missing', () => {
+    const zIndexes = new Map<number, number>([[0, 99]])
+    Map.prototype.set.call(zIndexes, undefined, 5)
+    const root = buildRawTree(
+      [axNode({ backendDOMNodeId: undefined })],
+      boxes,
+      'loader-1',
+      zIndexes,
+    )
+    expect(root).not.toHaveProperty('zIndex')
   })
 
   it('returns a node with no children when childIds reference missing nodes', () => {

@@ -8,6 +8,17 @@ import { explain, type ExplainTarget } from './explain.js'
 import { runFlow, type FlowStep } from './runFlow.js'
 import { verify, type Assertion } from './verify.js'
 import { watchUntil, type WatchCondition } from './watchUntil.js'
+import type { BrowserEvent } from '../events/types.js'
+
+/** Empty event list used by watch_until until a live event feed is wired. */
+export function noWatchEvents(): BrowserEvent[] {
+  return []
+}
+
+/** Builds the explain() diff target. Exported so tests pin `kind: 'diff'`. */
+export function diffExplainTarget(diff: DiffResult): ExplainTarget {
+  return { kind: 'diff', diff }
+}
 
 function isContextPage(page: unknown): page is ContextPage {
   if (typeof page !== 'object' || page === null) {
@@ -71,7 +82,7 @@ export function buildIntentTools(): ToolDefinition[] {
         const contextPage = requirePage(page)
         return watchUntil(
           async () => (await contextPage.observe()).snapshot,
-          () => [],
+          noWatchEvents,
           { kind: args.kind, value: args.value },
           { timeout: args.timeout },
         )
@@ -144,7 +155,7 @@ export function buildIntentTools(): ToolDefinition[] {
           if (!isDiffResult(diff)) {
             throw new Error('invalid args')
           }
-          return explain(observed.snapshot, observed.overlay, { kind: 'diff', diff })
+          return explain(observed.snapshot, observed.overlay, diffExplainTarget(diff))
         }
         return explain(observed.snapshot, observed.overlay, args)
       },

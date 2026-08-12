@@ -51,6 +51,26 @@ describe('StabilityWaiter', () => {
     expect(waiter.check(250)).toBe('timeout')
   })
 
+  it('times out when elapsed time equals the timeout while still noisy', () => {
+    const source = makeSource()
+    let now = 0
+    const waiter = new StabilityWaiter(source, { quietPeriod: 100, timeout: 200 }, () => now)
+    expect(waiter.check(0)).toBe('stable')
+    now = 150
+    source.mutate()
+    expect(waiter.check(200)).toBe('timeout')
+  })
+
+  it('measures timeout from a non-zero start, not now plus start', () => {
+    const source = makeSource()
+    let now = 1000
+    const waiter = new StabilityWaiter(source, { quietPeriod: 100, timeout: 200 }, () => now)
+    expect(waiter.check(1000)).toBe('stable')
+    now = 1040
+    source.mutate()
+    expect(waiter.check(1050)).toBe('waiting')
+  })
+
   it('applies a throttling multiplier to the quiet period', () => {
     const source = makeSource()
     const waiter = new StabilityWaiter(

@@ -44,6 +44,9 @@ describe('ActionLog', () => {
     log.record(makeEntry({ action: 'type', timestamp: 5 }))
     log.record(makeEntry({ action: 'hover', timestamp: 10 }))
     expect(log.after(4).map((e) => e.action)).toEqual(['type', 'hover'])
+    expect(log.after(5).map((e) => e.action)).toEqual(['hover'])
+    expect(log.after(10).map((e) => e.action)).toEqual([])
+    expect(log.after(1).map((e) => e.timestamp)).toEqual([5, 10])
   })
 
   it('clears all actions', () => {

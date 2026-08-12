@@ -24,10 +24,12 @@ describe('toResourceContents', () => {
     const buffer = new EventBuffer(10)
     buffer.push(consoleEvent('hello', 1))
     const contents = toResourceContents(buffer)
-    expect(contents).toHaveLength(1)
-    expect(contents[0]).toMatchObject({ uri: expect.stringContaining('browser://events') })
-    expect(JSON.parse(contents[0]?.text ?? '{}')).toEqual([
-      { type: 'console', timestamp: 1, level: 'log', text: 'hello' },
+    expect(contents).toEqual([
+      {
+        uri: 'browser://events',
+        mimeType: 'application/json',
+        text: JSON.stringify([{ type: 'console', timestamp: 1, level: 'log', text: 'hello' }]),
+      },
     ])
   })
 
@@ -118,11 +120,43 @@ describe('createEventResource', () => {
     await clientTransport.send({
       jsonrpc: '2.0',
       id: 2,
+      method: 'resources/list',
+      params: {},
+    })
+    await clientTransport.send({
+      jsonrpc: '2.0',
+      id: 3,
       method: 'resources/read',
       params: { uri: 'browser://events' },
     })
     await new Promise((resolve) => setTimeout(resolve, 50))
     expect(responses.length).toBeGreaterThan(0)
+    const listed = responses.find(
+      (message) =>
+        typeof message === 'object' && message !== null && 'id' in message && message.id === 2,
+    )
+    const read = responses.find(
+      (message) =>
+        typeof message === 'object' && message !== null && 'id' in message && message.id === 3,
+    )
+    expect(listed).toMatchObject({
+      result: {
+        resources: [
+          { uri: 'browser://events', name: 'browser-events', mimeType: 'application/json' },
+        ],
+      },
+    })
+    expect(read).toMatchObject({
+      result: {
+        contents: [
+          {
+            uri: 'browser://events',
+            mimeType: 'application/json',
+            text: JSON.stringify([{ type: 'console', timestamp: 1, level: 'log', text: 'a' }]),
+          },
+        ],
+      },
+    })
     await server.close()
   })
 })

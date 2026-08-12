@@ -25,6 +25,16 @@ describe('fingerprint', () => {
     expect(a).not.toBe(b)
   })
 
+  it('joins parts with a NUL separator and omits a missing value', () => {
+    expect(fingerprint(node('a', { role: 'button', name: 'Go' }))).toBe('button\u0000Go')
+    expect(fingerprint(node('a', { role: 'button', name: 'Go', value: '' }))).toBe(
+      'button\u0000Go\u0000',
+    )
+    expect(fingerprint(node('a', { role: 'textbox', name: 'Field', value: 'x' }))).toBe(
+      'textbox\u0000Field\u0000x',
+    )
+  })
+
   it('includes the value in the fingerprint', () => {
     const a = fingerprint(node('a', { role: 'textbox', name: 'Field', value: 'x' }))
     const b = fingerprint(node('a', { role: 'textbox', name: 'Field', value: 'y' }))
@@ -35,6 +45,9 @@ describe('fingerprint', () => {
     const a = fingerprint(node('a', { children: [node('b', { role: 'text', name: 'One' })] }))
     const b = fingerprint(node('a', { children: [node('c', { role: 'text', name: 'Two' })] }))
     expect(a).not.toBe(b)
+    expect(fingerprint(node('a', { children: [node('b', { role: 'text', name: 'C' })] }))).toBe(
+      'generic\u0000\u0000text\u0000C',
+    )
   })
 
   it('is deterministic across calls', () => {
@@ -62,7 +75,8 @@ describe('rebindUids', () => {
     const oldTree = node('old-1', { role: 'button', name: 'Go' })
     const newTree = node('new-1', { role: 'link', name: 'Go' })
     const result = rebindUids(oldTree, newTree)
-    expect(result).toEqual({})
+    expect(result).toStrictEqual({})
+    expect(Object.hasOwn(result, 'old-1')).toBe(false)
   })
 
   it('rebinds nested nodes recursively', () => {

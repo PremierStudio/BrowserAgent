@@ -10,7 +10,8 @@ export interface ReplayAnnotation {
 
 const MIME = 'text/html;profile=mcp-app'
 
-const REPLAY_SCRIPT = [
+/** Player script embedded in the replay document. Exported so tests pin every line. */
+export const REPLAY_SCRIPT = [
   '(function () {',
   "  var steps = document.querySelectorAll('[data-action]');",
   "  var scrubber = document.querySelector('[data-scrubber]');",

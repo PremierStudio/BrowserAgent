@@ -2,7 +2,10 @@ import { createServer } from 'node:http'
 
 /** Pathname of an IncomingMessage url, defaulting a missing url to /. */
 export function htmlRequestPathname(url: string | undefined): string {
-  return new URL(url === undefined ? '/' : url, 'http://127.0.0.1').pathname
+  if (url === undefined) {
+    return '/'
+  }
+  return new URL(url, 'http://127.0.0.1').pathname
 }
 
 /** Loopback URL for a Node listen address, or fallbackPort when address is not TCP. */

@@ -28,7 +28,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function asPayload(payload: unknown): Payload | null {
+/** Narrows an ingest payload to the fields we copy. Exported for guard tests. */
+export function asPayload(payload: unknown): Payload | null {
   if (!isRecord(payload)) {
     return null
   }

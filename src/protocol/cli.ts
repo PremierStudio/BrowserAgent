@@ -1,6 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio'
-import type { ContextPage } from '../context/ContextPage.js'
 import { buildIntentTools } from '../intent/intentTools.js'
 import { createRuntime, type RuntimeOptions } from '../session/runtime.js'
 import { buildTools } from './buildTools.js'
@@ -27,22 +26,16 @@ export type DefaultServerOptions = RuntimeOptions
  */
 export function createDefaultServer(options: DefaultServerOptions = {}): McpServer {
   const runtime = createRuntime(options)
-  const wiring: {
-    tools: ReturnType<typeof buildTools>
-    events: typeof runtime.events
-    tasks: { store: typeof runtime.store; runner: typeof runtime.runner }
-    actions: typeof runtime.actions
-    page?: ContextPage
-  } = {
-    tools: [...buildTools(), ...buildIntentTools()],
-    events: runtime.events,
-    tasks: { store: runtime.store, runner: runtime.runner },
-    actions: runtime.actions,
-  }
-  if (runtime.page !== undefined) {
-    wiring.page = runtime.page
-  }
-  return createServer({ name: SERVER_NAME, version: SERVER_VERSION }, wiring)
+  return createServer(
+    { name: SERVER_NAME, version: SERVER_VERSION },
+    {
+      tools: [...buildTools(), ...buildIntentTools()],
+      events: runtime.events,
+      tasks: { store: runtime.store, runner: runtime.runner },
+      actions: runtime.actions,
+      page: runtime.page,
+    },
+  )
 }
 
 /**

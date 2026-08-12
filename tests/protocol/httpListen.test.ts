@@ -4,6 +4,7 @@ import {
   asBuffer,
   boundPort,
   finishClose,
+  HTTP_LISTEN_HOST,
   isHttpArg,
   listenHttp,
   requestHost,
@@ -21,6 +22,8 @@ describe('applyIncomingHeaders', () => {
     expect(headers.get('accept')).toBe('text/plain')
     expect(headers.get('set-cookie')).toContain('a=1')
     expect(headers.get('set-cookie')).toContain('b=2')
+    expect(headers.getSetCookie()).toEqual(['a=1', 'b=2'])
+    expect(headers.has('skip')).toBe(false)
   })
 })
 
@@ -44,6 +47,7 @@ describe('finishClose', () => {
 
 describe('request helpers', () => {
   it('falls back when host, url, or method are missing', () => {
+    expect(HTTP_LISTEN_HOST).toBe('127.0.0.1')
     expect(requestHost(undefined, 9)).toBe('127.0.0.1:9')
     expect(requestHost('example.test', 9)).toBe('example.test')
     expect(requestUrlPath(undefined)).toBe('/')
@@ -87,8 +91,11 @@ describe('listenHttp', () => {
     )
     const response = await fetch(new URL('/ping', `http://127.0.0.1:${server.port}`))
     expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toMatch(/application\/json/)
     expect(await response.json()).toEqual({ path: '/ping' })
+    const closedUrl = `http://127.0.0.1:${server.port}/ping`
     await server.close()
+    await expect(fetch(closedUrl)).rejects.toThrow()
   })
 
   it('forwards method, headers, and body', async () => {
@@ -101,11 +108,18 @@ describe('listenHttp', () => {
     })
     const response = await fetch(`http://127.0.0.1:${server.port}/`, {
       method: 'POST',
+      headers: { 'x-test': 'yes' },
       body: 'hello',
     })
     expect(response.status).toBe(201)
     expect(seen).toBe('POST:hello')
+    const getResponse = await fetch(`http://127.0.0.1:${server.port}/`)
+    expect(getResponse.status).toBe(201)
+    const headResponse = await fetch(`http://127.0.0.1:${server.port}/`, { method: 'HEAD' })
+    expect(headResponse.status).toBe(201)
+    const closedUrl = `http://127.0.0.1:${server.port}/`
     await server.close()
+    await expect(fetch(closedUrl)).rejects.toThrow()
   })
 
   it('answers 500 when the handler throws', async () => {
@@ -116,6 +130,8 @@ describe('listenHttp', () => {
     })
     const response = await fetch(`http://127.0.0.1:${server.port}/`)
     expect(response.status).toBe(500)
+    const closedUrl = `http://127.0.0.1:${server.port}/`
     await server.close()
+    await expect(fetch(closedUrl)).rejects.toThrow()
   })
 })

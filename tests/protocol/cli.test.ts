@@ -1,11 +1,146 @@
 import { describe, expect, it } from 'vitest'
-import { McpServer } from '@modelcontextprotocol/server'
+import { McpServer, InMemoryTransport } from '@modelcontextprotocol/server'
 import {
   buildCliMain,
   buildHttpHandler,
   createDefaultServer,
   type Serve,
 } from '../../src/protocol/cli.js'
+import type { ContextPage } from '../../src/context/ContextPage.js'
+
+function fakePage(): ContextPage {
+  return {
+    getElementByUid: async () => undefined,
+    waitForEventsAfterAction: async () => undefined,
+    observe: async () => ({
+      snapshot: { uid: 'x', role: 'generic', name: 'n' },
+      image: 'img',
+      overlay: {},
+      pageState: { url: 'u', title: 't' },
+    }),
+    emulate: async () => undefined,
+    getDialog: async () => null,
+    click: async () => undefined,
+    type: async () => undefined,
+    hover: async () => undefined,
+    scroll: async () => undefined,
+    select: async () => undefined,
+    press: async () => undefined,
+    navigate: async () => undefined,
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+async function connectClient(server: McpServer): Promise<{
+  request: (
+    id: number,
+    method: string,
+    params?: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>
+  init: Record<string, unknown>
+  close: () => Promise<void>
+}> {
+  const [serverTransport, clientTransport] = InMemoryTransport.createLinkedPair()
+  await server.connect(serverTransport)
+  await clientTransport.start()
+  let pending: ((message: Record<string, unknown>) => void) | undefined
+  clientTransport.onmessage = (message) => {
+    if (!isRecord(message) || !('id' in message) || pending === undefined) {
+      return
+    }
+    pending(message)
+  }
+  async function request(id: number, method: string, params?: Record<string, unknown>) {
+    return new Promise<Record<string, unknown>>((resolve, reject) => {
+      pending = resolve
+      const payload: {
+        jsonrpc: '2.0'
+        id: number
+        method: string
+        params?: Record<string, unknown>
+      } = { jsonrpc: '2.0', id, method }
+      if (params !== undefined) {
+        payload.params = params
+      }
+      void clientTransport.send(payload).catch(reject)
+    })
+  }
+  const init = resultOf(
+    await request(1, 'initialize', {
+      protocolVersion: '2026-07-28',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '0.0.1' },
+    }),
+  )
+  await clientTransport.send({ jsonrpc: '2.0', method: 'notifications/initialized' })
+  return { request, init, close: () => server.close() }
+}
+
+function resultOf(message: Record<string, unknown>): Record<string, unknown> {
+  if (!isRecord(message.result)) {
+    throw new Error('expected json-rpc result object')
+  }
+  return message.result
+}
+
+function listedResources(message: Record<string, unknown>): unknown[] {
+  const resources = resultOf(message).resources
+  if (!Array.isArray(resources)) {
+    throw new Error('expected resources array')
+  }
+  return resources
+}
+
+function listedToolNames(message: Record<string, unknown>): string[] {
+  const tools = resultOf(message).tools
+  if (!Array.isArray(tools)) {
+    throw new Error('expected tools array')
+  }
+  const names: string[] = []
+  for (const tool of tools) {
+    if (isRecord(tool) && typeof tool.name === 'string') {
+      names.push(tool.name)
+    }
+  }
+  return names
+}
+
+function serverInfoFromSse(body: string): unknown {
+  for (const line of body.split('\n')) {
+    if (!line.startsWith('data: ')) {
+      continue
+    }
+    const parsed: unknown = JSON.parse(line.slice(6))
+    if (!isRecord(parsed) || !isRecord(parsed.result)) {
+      continue
+    }
+    return parsed.result.serverInfo
+  }
+  throw new Error('no serverInfo in sse body')
+}
+
+const DEFAULT_TOOL_NAMES = [
+  'observe',
+  'click',
+  'type',
+  'hover',
+  'scroll',
+  'select',
+  'press',
+  'navigate',
+  'watch_until',
+  'run_flow',
+  'verify',
+  'explain',
+  'confirm_action',
+  'get_task',
+  'list_tasks',
+  'cancel_task',
+  'wait_task',
+]
 
 describe('buildCliMain', () => {
   it('creates a main that serves via the provided serve function', () => {
@@ -22,8 +157,8 @@ describe('buildCliMain', () => {
     expect(typeof factory).toBe('function')
   })
 
-  it('the factory returns a server built from the standard tool set', () => {
-    let factory: (() => unknown) | undefined
+  it('the factory returns a server built from the standard tool set', async () => {
+    let factory: (() => McpServer) | undefined
     const serve: Serve = (f) => {
       factory = f
       return { close: async () => undefined }
@@ -32,10 +167,26 @@ describe('buildCliMain', () => {
     main()
     const server = factory?.()
     expect(server).toBeDefined()
+    if (server === undefined) {
+      throw new Error('expected factory server')
+    }
+    const client = await connectClient(server)
+    expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    const names = listedToolNames(await client.request(2, 'tools/list', {}))
+    expect(names).toEqual(DEFAULT_TOOL_NAMES)
+    expect(listedResources(await client.request(3, 'resources/list', {}))).toEqual([
+      { uri: 'browser://events', name: 'browser-events', mimeType: 'application/json' },
+      {
+        uri: 'ui://browser-agent/replay',
+        name: 'browser-replay',
+        mimeType: 'text/html;profile=mcp-app',
+      },
+    ])
+    await client.close()
   })
 
-  it('the factory server exposes confirm and task tools', () => {
-    let factory: (() => { toolInputSchemaJson: (name: string) => unknown }) | undefined
+  it('the factory server exposes confirm and task tools', async () => {
+    let factory: (() => McpServer) | undefined
     const serve: Serve = (f) => {
       factory = f
       return { close: async () => undefined }
@@ -44,35 +195,34 @@ describe('buildCliMain', () => {
     const server = factory?.()
     expect(server?.toolInputSchemaJson('confirm_action')).toBeDefined()
     expect(server?.toolInputSchemaJson('get_task')).toBeDefined()
+    if (server === undefined) {
+      throw new Error('expected factory server')
+    }
+    const client = await connectClient(server)
+    const listed = resultOf(
+      await client.request(2, 'tools/call', { name: 'list_tasks', arguments: {} }),
+    )
+    expect(listed.structuredContent).toEqual({ value: [] })
+    await client.close()
   })
 })
 
 describe('createDefaultServer', () => {
-  it('accepts a page and still exposes observe', () => {
-    const page = {
-      getElementByUid: async () => undefined,
-      waitForEventsAfterAction: async () => undefined,
-      observe: async () => ({
-        snapshot: { uid: 'x', role: 'generic', name: '' },
-        image: '',
-        overlay: {},
-        pageState: { url: '', title: '' },
-      }),
-      emulate: async () => undefined,
-      getDialog: async () => null,
-      click: async () => undefined,
-      type: async () => undefined,
-      hover: async () => undefined,
-      scroll: async () => undefined,
-      select: async () => undefined,
-      press: async () => undefined,
-      navigate: async () => undefined,
-    }
-    const server = createDefaultServer({ page })
+  it('accepts a page and still exposes observe', async () => {
+    const server = createDefaultServer({ page: fakePage() })
     expect(server.toolInputSchemaJson('observe')).toBeDefined()
+    const client = await connectClient(server)
+    const observed = resultOf(
+      await client.request(2, 'tools/call', { name: 'observe', arguments: {} }),
+    )
+    expect(observed.structuredContent).toMatchObject({
+      snapshot: { uid: 'x', role: 'generic', name: 'n' },
+      image: 'img',
+    })
+    await client.close()
   })
 
-  it('returns an McpServer with the event resource and task tools', () => {
+  it('returns an McpServer with the event resource and task tools', async () => {
     const server = createDefaultServer()
     expect(server).toBeInstanceOf(McpServer)
     expect(server.toolInputSchemaJson('observe')).toBeDefined()
@@ -82,6 +232,18 @@ describe('createDefaultServer', () => {
     expect(server.toolInputSchemaJson('verify')).toBeDefined()
     expect(server.toolInputSchemaJson('explain')).toBeDefined()
     expect(server.toolInputSchemaJson('run_flow')).toBeDefined()
+    const client = await connectClient(server)
+    expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    expect(listedToolNames(await client.request(2, 'tools/list', {}))).toEqual(DEFAULT_TOOL_NAMES)
+    expect(listedResources(await client.request(3, 'resources/list', {}))).toEqual([
+      { uri: 'browser://events', name: 'browser-events', mimeType: 'application/json' },
+      {
+        uri: 'ui://browser-agent/replay',
+        name: 'browser-replay',
+        mimeType: 'text/html;profile=mcp-app',
+      },
+    ])
+    await client.close()
   })
 })
 
@@ -96,7 +258,10 @@ describe('buildHttpHandler', () => {
     const response = await handler.fetch(
       new Request('http://localhost/mcp', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+        },
         body: JSON.stringify({
           jsonrpc: '2.0',
           id: 1,
@@ -109,7 +274,8 @@ describe('buildHttpHandler', () => {
         }),
       }),
     )
-    expect(response.status).toBeGreaterThanOrEqual(200)
-    expect(response.status).toBeLessThan(600)
+    expect(response.status).toBe(200)
+    const body = await response.text()
+    expect(serverInfoFromSse(body)).toEqual({ name: 'browser-agent', version: '0.0.1' })
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { renderReplay } from '../../src/apps/replay.js'
+import { renderReplay, REPLAY_SCRIPT } from '../../src/apps/replay.js'
 import type { ActionEntry } from '../../src/actions/ActionLog.js'
 
 function scrubberTag(html: string): string {
@@ -8,6 +8,102 @@ function scrubberTag(html: string): string {
 }
 
 describe('renderReplay', () => {
+  it('pins the exact player script text', () => {
+    const lines = [
+      '(function () {',
+      "  var steps = document.querySelectorAll('[data-action]');",
+      "  var scrubber = document.querySelector('[data-scrubber]');",
+      "  var playBtn = document.querySelector('[data-play]');",
+      "  var pauseBtn = document.querySelector('[data-pause]');",
+      "  var cursor = document.querySelector('[data-cursor]');",
+      "  var ripple = document.querySelector('[data-ripple]');",
+      "  var hoverPulse = document.querySelector('[data-hover-pulse]');",
+      "  var navFade = document.querySelector('[data-nav-fade]');",
+      '  var playing = false;',
+      '  var index = 0;',
+      '  var timer = 0;',
+      '  function clearFx() {',
+      "    if (ripple) ripple.classList.remove('ripple');",
+      "    if (hoverPulse) hoverPulse.classList.remove('pulse');",
+      "    if (navFade) navFade.classList.remove('fade');",
+      '  }',
+      '  function activate(i) {',
+      '    index = i;',
+      '    for (var s = 0; s < steps.length; s += 1) {',
+      '      var step = steps[s];',
+      '      if (!step) continue;',
+      "      if (s === i) step.setAttribute('data-active', '');",
+      "      else step.removeAttribute('data-active');",
+      '    }',
+      '    if (scrubber) scrubber.value = String(i);',
+      '    clearFx();',
+      '    var current = steps[i];',
+      '    if (!current) return;',
+      "    var action = current.getAttribute('data-action');",
+      "    var box = current.getAttribute('data-box');",
+      '    if (box && cursor) {',
+      "      var parts = box.split(',');",
+      '      var x = parts[0];',
+      '      var y = parts[1];',
+      '      if (x && y) {',
+      "        cursor.style.setProperty('--cx', x + 'px');",
+      "        cursor.style.setProperty('--cy', y + 'px');",
+      '      }',
+      '    }',
+      "    if (action === 'click' && ripple) ripple.classList.add('ripple');",
+      "    if (action === 'hover' && hoverPulse) hoverPulse.classList.add('pulse');",
+      "    if (action === 'navigate' && navFade) navFade.classList.add('fade');",
+      '  }',
+      '  function stopPlay() {',
+      '    playing = false;',
+      '    if (timer) {',
+      '      clearTimeout(timer);',
+      '      timer = 0;',
+      '    }',
+      '  }',
+      '  function walk() {',
+      '    if (!playing) return;',
+      '    if (index >= steps.length) {',
+      '      stopPlay();',
+      '      return;',
+      '    }',
+      '    activate(index);',
+      '    index += 1;',
+      '    timer = setTimeout(walk, 600);',
+      '  }',
+      '  if (scrubber) {',
+      "    scrubber.addEventListener('input', function () {",
+      '      stopPlay();',
+      '      activate(Number(scrubber.value));',
+      '    });',
+      '  }',
+      '  if (playBtn) {',
+      "    playBtn.addEventListener('click', function () {",
+      '      if (playing) return;',
+      '      playing = true;',
+      '      if (index >= steps.length) index = 0;',
+      '      walk();',
+      '    });',
+      '  }',
+      '  if (pauseBtn) {',
+      "    pauseBtn.addEventListener('click', function () {",
+      '      stopPlay();',
+      '    });',
+      '  }',
+      '})();',
+    ]
+    expect(REPLAY_SCRIPT).toBe(lines.join('\n'))
+    const html = renderReplay(
+      [
+        { action: 'navigate', uid: '', timestamp: 1 },
+        { action: 'click', uid: 'b', timestamp: 2 },
+      ],
+      [{ uid: 'b', label: 'x', color: 'red' }],
+    )
+    expect(html).toContain('</li><li')
+    expect(html).not.toContain('Stryker was here!')
+  })
+
   it('renders an empty timeline', () => {
     const html = renderReplay([])
     expect(html).toContain('<!doctype html>')
@@ -40,6 +136,18 @@ describe('renderReplay', () => {
     expect(html).toContain('data-annotation="btn-1"')
     expect(html).toContain('broken submit')
     expect(html).toContain('data-color="red"')
+  })
+
+  it('joins adjacent annotations without a separator', () => {
+    const html = renderReplay(
+      [{ action: 'click', uid: 'a', timestamp: 1 }],
+      [
+        { uid: 'a', label: 'one', color: 'red' },
+        { uid: 'b', label: 'two', color: 'blue' },
+      ],
+    )
+    expect(html).toContain('</div><div data-annotation="b"')
+    expect(html).not.toContain('Stryker was here!')
   })
 
   it('escapes HTML in action names and annotation labels', () => {

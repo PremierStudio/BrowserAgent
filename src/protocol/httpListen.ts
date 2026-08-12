@@ -96,6 +96,9 @@ async function writeResponse(res: ServerResponse, response: Response): Promise<v
   res.end(bytes)
 }
 
+/** Loopback bind host for the Streamable HTTP transport. */
+export const HTTP_LISTEN_HOST = '127.0.0.1'
+
 /**
  * Serves a fetch-shaped handler over Node HTTP. Port 0 binds an ephemeral port.
  */
@@ -110,7 +113,7 @@ export async function listenHttp(handler: FetchHandler, port = 0): Promise<HttpL
       })
   })
   await new Promise<void>((resolve) => {
-    server.listen(port, '127.0.0.1', () => resolve())
+    server.listen(port, HTTP_LISTEN_HOST, () => resolve())
   })
   const address = server.address()
   const bound = boundPort(address, port)

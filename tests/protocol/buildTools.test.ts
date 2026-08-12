@@ -49,6 +49,22 @@ function handlerFor(
   return buildTools().find((t) => t.name === name)?.handler
 }
 
+function toolNamed(name: string) {
+  const tool = buildTools().find((t) => t.name === name)
+  expect(tool).toBeDefined()
+  return tool
+}
+
+async function expectInvalidArgs(
+  name: string,
+  args: unknown,
+  page: ContextPage = recordPage(),
+): Promise<void> {
+  await expect(handlerFor(name)?.(args, { experimental: false, page })).rejects.toThrow(
+    /invalid args/i,
+  )
+}
+
 describe('buildTools', () => {
   it('returns the observe tool and the action tools', () => {
     const names = buildTools().map((t) => t.name)
@@ -62,6 +78,38 @@ describe('buildTools', () => {
       'press',
       'navigate',
     ])
+  })
+
+  it('advertises exact descriptions and input schemas', () => {
+    const click = toolNamed('click')
+    const type = toolNamed('type')
+    const hover = toolNamed('hover')
+    const scroll = toolNamed('scroll')
+    const select = toolNamed('select')
+    const press = toolNamed('press')
+    const navigate = toolNamed('navigate')
+    expect(click?.description).toBe('Click the element identified by uid.')
+    expect(type?.description).toBe('Type text into the element identified by uid.')
+    expect(hover?.description).toBe('Hover over the element identified by uid.')
+    expect(scroll?.description).toBe('Scroll by dx/dy within the element identified by uid.')
+    expect(select?.description).toBe('Select a value in the element identified by uid.')
+    expect(press?.description).toBe('Press a key on the page.')
+    expect(navigate?.description).toBe('Navigate the page to a URL.')
+    expect(click?.inputSchema.safeParse({ uid: '1' }).success).toBe(true)
+    expect(click?.inputSchema.safeParse({}).success).toBe(false)
+    expect(type?.inputSchema.safeParse({ uid: '1', text: 'hi' }).success).toBe(true)
+    expect(type?.inputSchema.safeParse({ uid: '1' }).success).toBe(false)
+    expect(hover?.inputSchema.safeParse({ uid: '1' }).success).toBe(true)
+    expect(hover?.inputSchema.safeParse({}).success).toBe(false)
+    expect(scroll?.inputSchema.safeParse({ uid: '1', dx: 1, dy: 2 }).success).toBe(true)
+    expect(scroll?.inputSchema.safeParse({ uid: '1', dx: 1 }).success).toBe(false)
+    expect(scroll?.inputSchema.safeParse({ uid: '1', dy: 2 }).success).toBe(false)
+    expect(select?.inputSchema.safeParse({ uid: '1', value: 'v' }).success).toBe(true)
+    expect(select?.inputSchema.safeParse({ uid: '1' }).success).toBe(false)
+    expect(press?.inputSchema.safeParse({ key: 'Enter' }).success).toBe(true)
+    expect(press?.inputSchema.safeParse({}).success).toBe(false)
+    expect(navigate?.inputSchema.safeParse({ url: 'https://example.com' }).success).toBe(true)
+    expect(navigate?.inputSchema.safeParse({}).success).toBe(false)
   })
 
   it('wires the observe tool to the page through the context', async () => {
@@ -122,6 +170,12 @@ describe('buildTools', () => {
     ).rejects.toThrow(/requires a page/i)
   })
 
+  it('throws when the page is null', async () => {
+    await expect(
+      handlerFor('click')?.({ uid: 'x' }, { experimental: false, page: null }),
+    ).rejects.toThrow(/requires a page/i)
+  })
+
   it('throws when the page is an object without click', async () => {
     await expect(
       handlerFor('click')?.({ uid: 'x' }, { experimental: false, page: { foo: 1 } }),
@@ -139,26 +193,33 @@ describe('buildTools', () => {
 
   it('throws on invalid args', async () => {
     const page = recordPage()
-    await expect(handlerFor('click')?.({}, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
-    )
-    await expect(handlerFor('type')?.({ uid: '1' }, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
-    )
-    await expect(
-      handlerFor('scroll')?.({ uid: '1' }, { experimental: false, page }),
-    ).rejects.toThrow(/invalid args/i)
-    await expect(
-      handlerFor('select')?.({ uid: '1' }, { experimental: false, page }),
-    ).rejects.toThrow(/invalid args/i)
-    await expect(handlerFor('press')?.({}, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
-    )
-    await expect(handlerFor('navigate')?.({}, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
-    )
-    await expect(handlerFor('hover')?.({}, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
-    )
+    const primitives: unknown[] = [null, undefined, 1, 'nope', true, false]
+    for (const args of primitives) {
+      await expectInvalidArgs('click', args, page)
+      await expectInvalidArgs('type', args, page)
+      await expectInvalidArgs('hover', args, page)
+      await expectInvalidArgs('scroll', args, page)
+      await expectInvalidArgs('select', args, page)
+      await expectInvalidArgs('press', args, page)
+      await expectInvalidArgs('navigate', args, page)
+    }
+    await expectInvalidArgs('click', {}, page)
+    await expectInvalidArgs('click', { text: 'x' }, page)
+    await expectInvalidArgs('type', {}, page)
+    await expectInvalidArgs('type', { uid: '1' }, page)
+    await expectInvalidArgs('type', { text: 'hi' }, page)
+    await expectInvalidArgs('hover', {}, page)
+    await expectInvalidArgs('scroll', {}, page)
+    await expectInvalidArgs('scroll', { uid: '1' }, page)
+    await expectInvalidArgs('scroll', { uid: '1', dx: 1 }, page)
+    await expectInvalidArgs('scroll', { uid: '1', dy: 2 }, page)
+    await expectInvalidArgs('scroll', { dx: 1, dy: 2 }, page)
+    await expectInvalidArgs('select', {}, page)
+    await expectInvalidArgs('select', { uid: '1' }, page)
+    await expectInvalidArgs('select', { value: 'v' }, page)
+    await expectInvalidArgs('press', {}, page)
+    await expectInvalidArgs('press', { uid: '1' }, page)
+    await expectInvalidArgs('navigate', {}, page)
+    await expectInvalidArgs('navigate', { uid: '1' }, page)
   })
 })

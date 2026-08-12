@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildIntentTools } from '../../src/intent/intentTools.js'
+import { buildIntentTools, diffExplainTarget, noWatchEvents } from '../../src/intent/intentTools.js'
 import type { ContextPage } from '../../src/context/ContextPage.js'
 import type { SnapshotNode } from '../../src/snapshot/a11ySnapshot.js'
 
@@ -36,6 +36,20 @@ function handlerFor(name: string) {
   return buildIntentTools().find((tool) => tool.name === name)?.handler
 }
 
+describe('noWatchEvents', () => {
+  it('returns an empty event list', () => {
+    expect(noWatchEvents()).toEqual([])
+    expect(noWatchEvents()).not.toEqual(['Stryker was here'])
+  })
+})
+
+describe('diffExplainTarget', () => {
+  it('pins kind to the diff discriminant', () => {
+    const diff = { added: [{ uid: 'a' }], removed: [], changed: [] }
+    expect(diffExplainTarget(diff)).toEqual({ kind: 'diff', diff })
+  })
+})
+
 describe('buildIntentTools', () => {
   it('returns watch_until, run_flow, verify, and explain in order', () => {
     expect(buildIntentTools().map((tool) => tool.name)).toEqual([
@@ -44,6 +58,59 @@ describe('buildIntentTools', () => {
       'verify',
       'explain',
     ])
+  })
+
+  it('advertises exact descriptions, readOnly flags, and input schemas', () => {
+    const tools = Object.fromEntries(buildIntentTools().map((tool) => [tool.name, tool]))
+    expect(tools.watch_until?.description).toBe(
+      'Poll the page until a condition matches or the timeout elapses.',
+    )
+    expect(tools.run_flow?.description).toBe('Run a sequence of page actions as one flow.')
+    expect(tools.verify?.description).toBe(
+      'Assert a condition against the current snapshot and return evidence.',
+    )
+    expect(tools.explain?.description).toBe(
+      'Explain a uid, region, or diff with a summary and annotation.',
+    )
+    expect(tools.watch_until?.readOnly).toBe(false)
+    expect(tools.run_flow?.readOnly).toBe(false)
+    expect(tools.verify?.readOnly).toBe(true)
+    expect(tools.explain?.readOnly).toBe(true)
+    expect(
+      tools.watch_until?.inputSchema.safeParse({ kind: 'text', value: 'x', timeout: 1 }).success,
+    ).toBe(true)
+    expect(
+      tools.watch_until?.inputSchema.safeParse({ kind: 'uid', value: 'x', timeout: 1 }).success,
+    ).toBe(true)
+    expect(
+      tools.watch_until?.inputSchema.safeParse({ kind: 'role', value: 'x', timeout: 1 }).success,
+    ).toBe(true)
+    expect(
+      tools.watch_until?.inputSchema.safeParse({ kind: 'event', value: 'x', timeout: 1 }).success,
+    ).toBe(true)
+    expect(
+      tools.watch_until?.inputSchema.safeParse({ kind: 'nope', value: 'x', timeout: 1 }).success,
+    ).toBe(false)
+    expect(tools.watch_until?.inputSchema.safeParse({ kind: 'uid', value: 'x' }).success).toBe(
+      false,
+    )
+    expect(tools.verify?.inputSchema.safeParse({ kind: 'uidExists' }).success).toBe(true)
+    expect(tools.verify?.inputSchema.safeParse({ kind: 'role' }).success).toBe(true)
+    expect(tools.verify?.inputSchema.safeParse({ kind: 'name' }).success).toBe(true)
+    expect(tools.verify?.inputSchema.safeParse({ kind: 'value' }).success).toBe(true)
+    expect(tools.verify?.inputSchema.safeParse({ kind: 'textContains' }).success).toBe(true)
+    expect(tools.verify?.inputSchema.safeParse({ kind: 'nope' }).success).toBe(false)
+    expect(tools.explain?.inputSchema.safeParse({ kind: 'uid' }).success).toBe(true)
+    expect(tools.explain?.inputSchema.safeParse({ kind: 'region' }).success).toBe(true)
+    expect(tools.explain?.inputSchema.safeParse({ kind: 'diff' }).success).toBe(true)
+    expect(tools.explain?.inputSchema.safeParse({ kind: 'nope' }).success).toBe(false)
+    expect(tools.run_flow?.inputSchema.safeParse({ steps: [] }).success).toBe(true)
+    expect(tools.run_flow?.inputSchema.safeParse({}).success).toBe(false)
+    expect(
+      tools.run_flow?.inputSchema.safeParse({ steps: [{ action: 'click', uid: '1' }] }).success,
+    ).toBe(true)
+    expect(tools.run_flow?.inputSchema.safeParse({ steps: [{ action: 1 }] }).success).toBe(false)
+    expect(tools.run_flow?.inputSchema.safeParse({ steps: [{}] }).success).toBe(false)
   })
 
   it('watch_until matches a uid on the current page', async () => {
@@ -121,17 +188,63 @@ describe('buildIntentTools', () => {
 
   it('throws on invalid args', async () => {
     const page = recordPage()
-    await expect(handlerFor('watch_until')?.({}, { experimental: false, page })).rejects.toThrow(
+    const ctx = { experimental: false, page }
+    const invalid = [null, undefined, 1, 'x', true, [], {}, { kind: 'uid' }, { value: 'x' }]
+    for (const args of invalid) {
+      await expect(handlerFor('watch_until')?.(args, ctx)).rejects.toThrow(/invalid args/i)
+    }
+    await expect(handlerFor('watch_until')?.({ kind: 'uid', value: 'x' }, ctx)).rejects.toThrow(
       /invalid args/i,
     )
-    await expect(handlerFor('run_flow')?.({}, { experimental: false, page })).rejects.toThrow(
+    await expect(handlerFor('run_flow')?.({}, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('run_flow')?.({ steps: 'nope' }, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('run_flow')?.(null, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('run_flow')?.(1, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('verify')?.({}, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('verify')?.(null, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('verify')?.(1, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('explain')?.({}, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('explain')?.(null, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('explain')?.(1, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('explain')?.({ kind: 'diff', diff: null }, ctx)).rejects.toThrow(
       /invalid args/i,
     )
-    await expect(handlerFor('verify')?.({}, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
+    await expect(
+      handlerFor('explain')?.({ kind: 'diff', diff: { added: [] } }, ctx),
+    ).rejects.toThrow(/invalid args/i)
+    await expect(
+      handlerFor('explain')?.({ kind: 'diff', diff: { added: [], changed: [] } }, ctx),
+    ).rejects.toThrow(/invalid args/i)
+    await expect(
+      handlerFor('explain')?.({ kind: 'diff', diff: { removed: [], changed: [] } }, ctx),
+    ).rejects.toThrow(/invalid args/i)
+    await expect(
+      handlerFor('explain')?.({ kind: 'diff', diff: { added: [], removed: [] } }, ctx),
+    ).rejects.toThrow(/invalid args/i)
+  })
+
+  it('watch_until times out when the condition never matches', async () => {
+    const result = await handlerFor('watch_until')?.(
+      { kind: 'uid', value: 'missing', timeout: 0 },
+      { experimental: false, page: recordPage() },
     )
-    await expect(handlerFor('explain')?.({}, { experimental: false, page })).rejects.toThrow(
-      /invalid args/i,
+    expect(result).toEqual({ matched: false, reason: 'timeout' })
+  })
+
+  it('watch_until event kind does not match when the page has no events', async () => {
+    const result = await handlerFor('watch_until')?.(
+      { kind: 'event', value: 'console', timeout: 0 },
+      { experimental: false, page: recordPage() },
     )
+    expect(result).toEqual({ matched: false, reason: 'timeout' })
+  })
+
+  it('rejects every non-page value', async () => {
+    const args = { kind: 'uidExists', uid: 'x' }
+    for (const page of [null, 1, 'x', true, {}, { observe: 1 }, { click: () => undefined }]) {
+      await expect(handlerFor('verify')?.(args, { experimental: false, page })).rejects.toThrow(
+        /requires a page/i,
+      )
+    }
   })
 })

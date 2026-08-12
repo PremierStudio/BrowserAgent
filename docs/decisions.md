@@ -87,7 +87,9 @@ amendments take precedence over the corresponding lines of `mvp.md`.
 19. **Coverage gate**: `@vitest/coverage-v8`, thresholds 100 across
     lines/functions/branches/statements on `src/`, fail below threshold.
 20. **Mutation gate**: stryker `thresholds: { high: 100, low: 100, break: 100 }`
-    (exit 1 below `break`). Vitest runner, `mutate: ['src/**/*.ts']`. Windows:
+    (exit 1 below `break`). Vitest runner, `mutate: ['src/**/*.ts', '!src/cli.ts']`
+    (`src/cli.ts` is the process entry; it only wires live Puppeteer and is
+    covered by `tests/cli.test.ts`, not by mutant-killing unit tests). Windows:
     forward-slash globs only, gitignore `.stryker-tmp`, set
     `timeoutMS: 30000`, and CI kills orphan Chrome between runs
     (`taskkill /F /IM chrome.exe`) — a stuck mutant spawns headless Chrome.
