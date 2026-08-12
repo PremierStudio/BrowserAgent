@@ -56,14 +56,7 @@ describe.skipIf(!enabled)('chrome observe', () => {
     }
     const uid = firstClickableUid(result.snapshot)
     if (uid !== undefined) {
-      try {
-        await context.click(uid)
-      } catch (error) {
-        // adaptPage opens a fresh CDP session per call; object ids do not
-        // survive that, so Runtime.callFunctionOn can fail after resolveNode.
-        const message = error instanceof Error ? error.message : ''
-        expect(message).toMatch(/Could not find object|Protocol error/)
-      }
+      await context.click(uid)
     }
   }, 30000)
 })

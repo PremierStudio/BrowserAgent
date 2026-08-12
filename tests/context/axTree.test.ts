@@ -67,6 +67,28 @@ describe('buildRawTree', () => {
     expect(root.children).toBeUndefined()
   })
 
+  it('promotes visible descendants through ignored wrappers', () => {
+    const nodes = [
+      axNode({
+        nodeId: '1',
+        role: { value: 'RootWebArea' },
+        name: { value: 'Spin' },
+        childIds: ['2'],
+      }),
+      axNode({ nodeId: '2', ignored: true, childIds: ['3'] }),
+      axNode({
+        nodeId: '3',
+        role: { value: 'button' },
+        name: { value: 'Go' },
+        backendDOMNodeId: 2,
+      }),
+    ]
+    const root = buildRawTree(nodes, boxes, 'loader-1')
+    expect(root.children).toHaveLength(1)
+    expect(root.children?.[0]?.role).toBe('button')
+    expect(root.children?.[0]?.name).toBe('Go')
+  })
+
   it('includes the value when present', () => {
     const root = buildRawTree([axNode({ value: { value: 'hello' } })], boxes, 'loader-1')
     expect(root.value).toBe('hello')

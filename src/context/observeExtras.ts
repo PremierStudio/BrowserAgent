@@ -6,7 +6,7 @@ export interface PageState {
   title: string
 }
 
-const READ_PAGE_STATE = '() => ({ url: location.href, title: document.title })'
+const READ_PAGE_STATE = '({ url: location.href, title: document.title })'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null

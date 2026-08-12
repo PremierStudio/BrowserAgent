@@ -66,9 +66,19 @@ export function buildRawTree(
       const children: RawA11yNode[] = []
       for (const childId of node.childIds) {
         const child = byId.get(childId)
-        if (child !== undefined && !child.ignored) {
-          children.push(build(child))
+        if (child === undefined) {
+          continue
         }
+        if (child.ignored) {
+          const promoted = build(child).children
+          if (promoted !== undefined) {
+            for (const visible of promoted) {
+              children.push(visible)
+            }
+          }
+          continue
+        }
+        children.push(build(child))
       }
       if (children.length > 0) {
         raw.children = children
