@@ -18,7 +18,7 @@ import type { KnipConfiguration } from 'knip'
 // runtime dependency of the product, so we record that decision here rather
 // than removing it.
 const config: KnipConfiguration = {
-  entry: ['scripts/*.ts'],
+  entry: ['scripts/*.ts', 'src/cli.ts'],
   stryker: { config: ['stryker.config.ts'] },
   ignoreDependencies: ['@stryker-mutator/api', 'puppeteer'],
 }

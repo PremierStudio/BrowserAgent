@@ -215,4 +215,29 @@ describe('ToolHandler', () => {
     const result = await handler.call('test', 'plain-string')
     expect(result).toEqual({ got: 'plain-string' })
   })
+
+  it('passes the injected page through to the handler context', async () => {
+    const handler = new ToolHandler()
+    handler.register(
+      makeTool({
+        name: 'pageAware',
+        handler: async (_args, context) => ({ page: context.page }),
+      }),
+    )
+    handler.setPage({ url: 'https://example.com' })
+    const result = await handler.call('pageAware', { value: 'x' })
+    expect(result).toEqual({ page: { url: 'https://example.com' } })
+  })
+
+  it('omits the page from context when none is set', async () => {
+    const handler = new ToolHandler()
+    handler.register(
+      makeTool({
+        name: 'noPage',
+        handler: async (_args, context) => ({ hasPage: context.page !== undefined }),
+      }),
+    )
+    const result = await handler.call('noPage', { value: 'x' })
+    expect(result).toEqual({ hasPage: false })
+  })
 })

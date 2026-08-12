@@ -132,6 +132,21 @@ cd BrowserAgent
 npm install
 ```
 
+### Run the server
+
+BrowserAgent speaks MCP over stdio. The runnable entry point boots the server
+with the standard page-aware tool set (`observe`, `click`, `type`, `hover`,
+`scroll`, `select`, `press`, `navigate`):
+
+```bash
+npm start
+```
+
+Point any MCP client (Claude Desktop, a custom host, etc.) at the stdio
+command `node dist/cli.js` and it can observe and drive a headless browser.
+The server exposes `tools/list`, `tools/call`, and `server/discover` via the
+v2 `@modelcontextprotocol/server` SDK.
+
 ### Run the full gate chain
 
 This is exactly what CI enforces:

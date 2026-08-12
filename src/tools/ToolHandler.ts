@@ -13,6 +13,7 @@ export class ToolHandler {
   private experimentalEnabled = false
   private mutex = new ToolMutex()
   private writeTail: Promise<void> = Promise.resolve()
+  private page: unknown
 
   register(tool: ToolDefinition): void {
     this.tools.set(tool.name, tool)
@@ -34,6 +35,11 @@ export class ToolHandler {
     this.experimentalEnabled = enabled
   }
 
+  /** Injects the page into the tool context for page-aware tools. */
+  setPage(page: unknown): void {
+    this.page = page
+  }
+
   async call(name: string, rawArgs: unknown): Promise<unknown> {
     const tool = this.tools.get(name)
     if (tool === undefined) {
@@ -47,7 +53,7 @@ export class ToolHandler {
     }
 
     const args = this.parseArgs(tool, rawArgs)
-    const context: ToolContext = { experimental: this.experimentalEnabled }
+    const context: ToolContext = { experimental: this.experimentalEnabled, page: this.page }
 
     if (tool.readOnly) {
       const token = this.mutex.acquireRead()

@@ -18,6 +18,8 @@
     "mutation": "stryker run",
     "survivors": "npm run build:scripts && node dist-scripts/survivors.js",
     "build:scripts": "tsc -p tsconfig.scripts.json",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "npm run build && node dist/cli.js",
     "reports": "vitest run --coverage --reporter junit --outputFile reports/junit.xml",
     "ci:survivors": "npm run mutation && npm run survivors",
     "ci": "npm run typecheck && npm run lint && npm run format && npm run knip && npm test && npm run coverage && npm run ci:survivors"

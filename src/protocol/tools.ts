@@ -1,20 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/server'
 import type { ToolDefinition } from '../tools/types.js'
 
-/** A minimal structural view of the MCP server we register tools on. */
-export interface ToolRegistrar {
-  registerTool(
-    name: string,
-    config: {
-      title?: string
-      description?: string
-      inputSchema?: unknown
-      annotations?: Record<string, boolean>
-    },
-    callback: (args: unknown) => Promise<unknown>,
-  ): void
-}
-
 /** The subset of ToolHandler that tool registration needs. */
 export interface ToolCaller {
   call(name: string, args: unknown): Promise<unknown>
@@ -32,10 +18,12 @@ export function toToolAnnotations(readOnly: boolean): Record<string, boolean> {
 /**
  * Registers every tool from a ToolCaller onto an MCP server. Each tool's
  * zod input schema and annotations are passed through; the callback dispatches
- * to the ToolCaller, which enforces gating and the write mutex.
+ * to the ToolCaller (which enforces gating and the write mutex) and wraps the
+ * result into an MCP CallToolResult with structuredContent plus a text
+ * representation.
  */
 export function registerTools(
-  server: ToolRegistrar,
+  server: McpServer,
   tools: ToolDefinition[],
   handler: ToolCaller,
 ): void {
@@ -48,7 +36,13 @@ export function registerTools(
         inputSchema: tool.inputSchema,
         annotations: toToolAnnotations(tool.readOnly),
       },
-      async (args) => handler.call(tool.name, args),
+      async (args) => {
+        const result = await handler.call(tool.name, args)
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result) }],
+          structuredContent: result,
+        }
+      },
     )
   }
 }
