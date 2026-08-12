@@ -29,7 +29,8 @@ describe('createUid', () => {
   it('handles a missing loaderId by using a placeholder', () => {
     const uid = createUid('', 42)
     expect(uid).toContain('42')
-    expect(uid.length).toBeGreaterThan(0)
+    expect(uid).toContain('no-loader')
+    expect(uid).toBe('no-loader_42')
   })
 
   it('handles a missing backendNodeId', () => {
@@ -60,6 +61,14 @@ describe('parseUid', () => {
 
   it('returns null for a uid with a non-numeric backendNodeId', () => {
     expect(parseUid('loader-1_abc')).toBeNull()
+  })
+
+  it('returns null for a uid whose separator is the final character', () => {
+    expect(parseUid('loader-1_')).toBeNull()
+  })
+
+  it('returns null for a uid whose separator is the first character', () => {
+    expect(parseUid('_42')).toBeNull()
   })
 
   it('returns null for an empty string', () => {
