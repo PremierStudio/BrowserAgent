@@ -113,16 +113,6 @@ amendments take precedence over the corresponding lines of `mvp.md`.
     `.js`/`.mjs`/`.cjs`, and (c) knip/lint/format on the repo. The auto-generated
     `dist-scripts/` output is gitignored and excluded from lint/coverage/mutation.
 
-## M1 survivors
-
-30. **`src/context/axTree.ts` fallback-root `ignored` field** — the empty-nodes
-    fallback root (`{ nodeId: 'root', ignored: false }`) carries an `ignored`
-    field that is never read: `build()` only checks `ignored` on children in
-    the parent loop, and the root has no parent. Mutating `false` → `true` has
-    no observable effect, so it is a defensive branch unreachable by design.
-    Approved as `defensive:axTree-fallback-root-ignored` in the survivor
-    registry.
-
 ## Operating guardrails for the loop
 
 24. Master agent (Grok) orchestrates; subagents implement well-scoped modules

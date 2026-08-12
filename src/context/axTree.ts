@@ -17,6 +17,15 @@ export type BoxLookup = Map<number, BoundingBox>
 /** A lookup from backendDOMNodeId to its z-index. */
 export type ZIndexLookup = Map<number, number>
 
+/** The subset of AxNode that build() actually reads. */
+interface BuildNode {
+  role?: { value: string }
+  name?: { value: string }
+  value?: { value: string }
+  backendDOMNodeId?: number
+  childIds?: string[]
+}
+
 /**
  * Converts a flat CDP accessibility tree into a nested raw snapshot tree.
  * Nodes are connected by childIds; ignored nodes are filtered out; bounding
@@ -34,7 +43,7 @@ export function buildRawTree(
     byId.set(node.nodeId, node)
   }
 
-  const build = (node: AxNode): RawA11yNode => {
+  const build = (node: BuildNode): RawA11yNode => {
     const raw: RawA11yNode = {
       role: node.role?.value ?? 'generic',
       name: node.name?.value ?? '',
@@ -68,5 +77,12 @@ export function buildRawTree(
     return raw
   }
 
-  return build(nodes[0] ?? { nodeId: 'root', ignored: false })
+  const root = nodes[0]
+  if (root === undefined) {
+    return build({})
+  }
+  if (root.ignored) {
+    return build({})
+  }
+  return build(root)
 }

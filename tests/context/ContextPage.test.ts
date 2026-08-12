@@ -27,16 +27,16 @@ describe('PuppeteerContextPage', () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)
     const result = await context.observe()
-    expect(result.snapshot).toBeDefined()
+    expect(result.snapshot.uid).toBe('placeholder')
     expect(result.image).toBe('data:image/png;base64,abc')
-    expect(result.overlay).toBeDefined()
+    expect(result.overlay).toEqual({})
   })
 
   it('getElementByUid resolves an element by uid', async () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)
     const element = await context.getElementByUid('loader-1_42')
-    expect(element).toBeDefined()
+    expect(element).toEqual({ uid: 'loader-1_42', backendNodeId: 42 })
   })
 
   it('getElementByUid throws for an invalid uid', async () => {
