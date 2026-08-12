@@ -1,13 +1,13 @@
 import type { BoundingBox, SnapshotNode } from '../snapshot/a11ySnapshot.js'
 
 /** A single change to a node's field. */
-export interface FieldChange<T> {
+interface FieldChange<T> {
   from: T
   to: T
 }
 
 /** The set of changes detected on a single node. */
-export interface NodeChange {
+interface NodeChange {
   uid: string
   value?: FieldChange<string>
   name?: FieldChange<string>
