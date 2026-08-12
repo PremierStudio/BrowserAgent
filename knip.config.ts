@@ -10,10 +10,17 @@ import type { KnipConfiguration } from 'knip'
 // (`import type { PartialStrykerOptions }` in `stryker.config.ts`) and has no
 // runtime import anywhere, so knip's default dependency analysis reports it as
 // unused; ignoring it records that decision deliberately.
+//
+// `puppeteer` is the browser-automation core the whole server is built on.
+// `ContextPage` deliberately wraps it behind a structural `PageLike` contract
+// (so tools and unit tests never touch the raw Puppeteer Page), which means
+// there is no direct `import ... from 'puppeteer'` in `src/` yet. It is a real
+// runtime dependency of the product, so we record that decision here rather
+// than removing it.
 const config: KnipConfiguration = {
   entry: ['scripts/*.ts'],
   stryker: { config: ['stryker.config.ts'] },
-  ignoreDependencies: ['@stryker-mutator/api'],
+  ignoreDependencies: ['@stryker-mutator/api', 'puppeteer'],
 }
 
 export default config
