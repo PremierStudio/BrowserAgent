@@ -10,9 +10,16 @@ function makeMockPage(): PageLike {
     accessibility: {
       snapshot: async () => ({ root: 'tree' }),
     },
-    cdp: async () => ({}),
+    cdp: async (_session, method) => {
+      if (method === 'DOM.resolveNode') {
+        return { object: { objectId: 'obj-1' } }
+      }
+      return {}
+    },
     screenshot: async () => 'data:image/png;base64,abc',
     evaluate: async () => ({}),
+    goto: async () => undefined,
+    keyboardPress: async () => undefined,
   }
 }
 
@@ -27,7 +34,7 @@ describe('PuppeteerContextPage', () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)
     const result = await context.observe()
-    expect(result.snapshot.uid).toBe('placeholder')
+    expect(result.snapshot.role).toBe('generic')
     expect(result.image).toBe('data:image/png;base64,abc')
     expect(result.overlay).toEqual({})
   })

@@ -48,6 +48,29 @@ describe('buildCliMain', () => {
 })
 
 describe('createDefaultServer', () => {
+  it('accepts a page and still exposes observe', () => {
+    const page = {
+      getElementByUid: async () => undefined,
+      waitForEventsAfterAction: async () => undefined,
+      observe: async () => ({
+        snapshot: { uid: 'x', role: 'generic', name: '' },
+        image: '',
+        overlay: {},
+      }),
+      emulate: async () => undefined,
+      getDialog: async () => null,
+      click: async () => undefined,
+      type: async () => undefined,
+      hover: async () => undefined,
+      scroll: async () => undefined,
+      select: async () => undefined,
+      press: async () => undefined,
+      navigate: async () => undefined,
+    }
+    const server = createDefaultServer({ page })
+    expect(server.toolInputSchemaJson('observe')).toBeDefined()
+  })
+
   it('returns an McpServer with the event resource and task tools', () => {
     const server = createDefaultServer()
     expect(server).toBeInstanceOf(McpServer)

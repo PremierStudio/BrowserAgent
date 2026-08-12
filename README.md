@@ -144,7 +144,8 @@ npm install
 ### Run the server
 
 BrowserAgent speaks MCP over stdio (and Streamable HTTP via `createHttpHandler`).
-The runnable entry point boots the fully-wired server:
+`npm start` launches a headless Chrome via Puppeteer, attaches the event
+collector, and serves the fully-wired MCP server:
 
 ```bash
 npm start

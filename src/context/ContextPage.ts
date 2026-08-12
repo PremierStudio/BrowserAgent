@@ -1,6 +1,16 @@
 import type { SnapshotNode } from '../snapshot/a11ySnapshot.js'
 import type { Overlay } from '../snapshot/overlay.js'
 import { parseUid } from '../uid.js'
+import {
+  clickUid,
+  hoverUid,
+  navigateTo,
+  pressKey,
+  scrollUid,
+  selectUid,
+  typeUid,
+} from './actOnPage.js'
+import { observePage } from './observePage.js'
 
 /** The result of observing a page. */
 export interface ObserveResult {
@@ -32,7 +42,9 @@ export interface PageLike {
   }
   cdp: (session: string, method: string, params?: unknown) => Promise<unknown>
   screenshot: (opts?: unknown) => Promise<string>
-  evaluate: (fn: string) => Promise<unknown>
+  evaluate: (fn: string, arg?: unknown) => Promise<unknown>
+  goto: (url: string) => Promise<void>
+  keyboardPress: (key: string) => Promise<void>
 }
 
 /**
@@ -61,14 +73,7 @@ export class PuppeteerContextPage implements ContextPage {
   }
 
   async observe(): Promise<ObserveResult> {
-    const axTree = await this.page.accessibility.snapshot()
-    void axTree
-    const image = await this.page.screenshot()
-    return {
-      snapshot: { uid: 'placeholder', role: 'generic', name: '' },
-      image,
-      overlay: {},
-    }
+    return observePage(this.page)
   }
 
   async emulate(options: unknown): Promise<void> {
@@ -81,34 +86,30 @@ export class PuppeteerContextPage implements ContextPage {
   }
 
   async click(uid: string): Promise<void> {
-    void uid
+    await clickUid(this.page, uid)
   }
 
   async type(uid: string, text: string): Promise<void> {
-    void uid
-    void text
+    await typeUid(this.page, uid, text)
   }
 
   async hover(uid: string): Promise<void> {
-    void uid
+    await hoverUid(this.page, uid)
   }
 
   async scroll(uid: string, dx: number, dy: number): Promise<void> {
-    void uid
-    void dx
-    void dy
+    await scrollUid(this.page, uid, dx, dy)
   }
 
   async select(uid: string, value: string): Promise<void> {
-    void uid
-    void value
+    await selectUid(this.page, uid, value)
   }
 
   async press(key: string): Promise<void> {
-    void key
+    await pressKey(this.page, key)
   }
 
   async navigate(url: string): Promise<void> {
-    void url
+    await navigateTo(this.page, url)
   }
 }

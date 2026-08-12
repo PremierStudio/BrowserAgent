@@ -1,10 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/server'
 import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio'
-import { ActionLog } from '../actions/ActionLog.js'
-import { EventBuffer } from '../events/EventBuffer.js'
-import { TaskRunner } from '../tasks/TaskRunner.js'
-import { TaskStore } from '../tasks/TaskStore.js'
+import type { ContextPage } from '../context/ContextPage.js'
 import { buildIntentTools } from '../intent/intentTools.js'
+import { createRuntime, type RuntimeOptions } from '../session/runtime.js'
 import { buildTools } from './buildTools.js'
 import { createHttpHandler } from './http.js'
 import { createServer } from './server.js'
@@ -17,26 +15,34 @@ export type Serve = (factory: ServerFactory) => StdioServerHandle
 
 const SERVER_NAME = 'browser-agent'
 const SERVER_VERSION = '0.0.1'
-const EVENT_CAPACITY = 100
+
+/** Optional page and event source for the default server. */
+export type DefaultServerOptions = RuntimeOptions
 
 /**
  * Builds the fully-wired default server: page tools, confirm_action (MRTR),
- * the Tasks fallback tools, and the browser://events resource.
+ * the Tasks fallback tools, and the browser://events resource. When a page
+ * is provided it is wrapped in a BrowserSession; when an event source is
+ * provided, EventCollector starts immediately.
  */
-export function createDefaultServer(): McpServer {
-  const store = new TaskStore()
-  const runner = new TaskRunner(store)
-  const events = new EventBuffer(EVENT_CAPACITY)
-  const actions = new ActionLog(EVENT_CAPACITY)
-  return createServer(
-    { name: SERVER_NAME, version: SERVER_VERSION },
-    {
-      tools: [...buildTools(), ...buildIntentTools()],
-      events,
-      tasks: { store, runner },
-      actions,
-    },
-  )
+export function createDefaultServer(options: DefaultServerOptions = {}): McpServer {
+  const runtime = createRuntime(options)
+  const wiring: {
+    tools: ReturnType<typeof buildTools>
+    events: typeof runtime.events
+    tasks: { store: typeof runtime.store; runner: typeof runtime.runner }
+    actions: typeof runtime.actions
+    page?: ContextPage
+  } = {
+    tools: [...buildTools(), ...buildIntentTools()],
+    events: runtime.events,
+    tasks: { store: runtime.store, runner: runtime.runner },
+    actions: runtime.actions,
+  }
+  if (runtime.page !== undefined) {
+    wiring.page = runtime.page
+  }
+  return createServer({ name: SERVER_NAME, version: SERVER_VERSION }, wiring)
 }
 
 /**
@@ -44,13 +50,13 @@ export function createDefaultServer(): McpServer {
  * point passes the SDK's serveStdio, tests pass a stub. The factory creates
  * the fully-wired server with the standard page-aware tool set.
  */
-export function buildCliMain(serve: Serve): () => void {
+export function buildCliMain(serve: Serve, options: DefaultServerOptions = {}): () => void {
   return () => {
-    serve(() => createDefaultServer())
+    serve(() => createDefaultServer(options))
   }
 }
 
 /** Builds the Streamable HTTP handler around the default server factory. */
-export function buildHttpHandler() {
-  return createHttpHandler(() => createDefaultServer())
+export function buildHttpHandler(options: DefaultServerOptions = {}) {
+  return createHttpHandler(() => createDefaultServer(options))
 }
