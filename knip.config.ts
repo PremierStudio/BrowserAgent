@@ -6,11 +6,6 @@ import type { KnipConfiguration } from 'knip'
 // then parses it and derives `@stryker-mutator/vitest-runner` from
 // `testRunner: 'vitest'` (instead of flagging it as an unused dependency).
 //
-// `@stryker-mutator/api` is consumed exclusively as a type
-// (`import type { PartialStrykerOptions }` in `stryker.config.ts`) and has no
-// runtime import anywhere, so knip's default dependency analysis reports it as
-// unused; ignoring it records that decision deliberately.
-//
 // `puppeteer` is the browser-automation core the whole server is built on.
 // `ContextPage` deliberately wraps it behind a structural `PageLike` contract
 // (so tools and unit tests never touch the raw Puppeteer Page), which means
@@ -20,7 +15,7 @@ import type { KnipConfiguration } from 'knip'
 const config: KnipConfiguration = {
   entry: ['scripts/*.ts', 'src/cli.ts'],
   stryker: { config: ['stryker.config.ts'] },
-  ignoreDependencies: ['@stryker-mutator/api', 'puppeteer'],
+  ignoreDependencies: ['puppeteer'],
 }
 
 export default config

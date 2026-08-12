@@ -19,7 +19,7 @@
 </p>
 
 <p align="center">
-  <a href="#thesis">Thesis</a> · <a href="#why">Why</a> · <a href="#architecture">Architecture</a> · <a href="#getting-started">Getting Started</a> · <a href="#engineering">Engineering</a> · <a href="#roadmap">Roadmap</a>
+  <a href="#thesis">Thesis</a> · <a href="#why">Why</a> · <a href="#architecture">Architecture</a> · <a href="#getting-started">Getting Started</a> · <a href="#engineering">Engineering</a> · <a href="#roadmap">Product</a>
 </p>
 
 ---
@@ -67,6 +67,9 @@ flowchart TB
 
     subgraph Protocol["MCP Protocol Layer"]
         Server[McpServer<br/>tools/list · tools/call · server/discover]
+        Tasks[Tasks fallback<br/>get · list · cancel · wait]
+        Apps[MCP Apps<br/>ui:// replay]
+        Mrtr[MRTR confirm_action]
     end
 
     subgraph Framework["Tool Framework"]
@@ -84,14 +87,20 @@ flowchart TB
     Browser[ContextPage<br/>over Puppeteer / CDP]
 
     Client <-->|MCP| Server
+    Server --> Tasks
+    Server --> Apps
+    Server --> Mrtr
     Server -->|registerTool| Handler
     Handler -->|read| Observe
     Handler -->|write| Actions
+    Handler -->|intent| Intent[watch_until · run_flow · verify · explain]
     Observe --> Diff
     Observe --> Events
     Actions --> Events
+    Actions --> Apps
     Observe --> Browser
     Actions --> Browser
+    Intent --> Browser
 ```
 
 The layers are thin and testable: the protocol layer bridges our tools onto MCP, the `ToolHandler` enforces gating, and the `ContextPage` hides Puppeteer behind a narrow contract so nothing touches the raw page.
@@ -134,18 +143,26 @@ npm install
 
 ### Run the server
 
-BrowserAgent speaks MCP over stdio. The runnable entry point boots the server
-with the standard page-aware tool set (`observe`, `click`, `type`, `hover`,
-`scroll`, `select`, `press`, `navigate`):
+BrowserAgent speaks MCP over stdio (and Streamable HTTP via `createHttpHandler`).
+The runnable entry point boots the fully-wired server:
 
 ```bash
 npm start
 ```
 
 Point any MCP client (Claude Desktop, a custom host, etc.) at the stdio
-command `node dist/cli.js` and it can observe and drive a headless browser.
-The server exposes `tools/list`, `tools/call`, and `server/discover` via the
-v2 `@modelcontextprotocol/server` SDK.
+command `node dist/cli.js`. The server exposes `tools/list`, `tools/call`,
+and `server/discover` via the v2 `@modelcontextprotocol/server` SDK.
+
+**Page tools:** `observe`, `click`, `type`, `hover`, `scroll`, `select`, `press`, `navigate`
+
+**Intent tools:** `watch_until`, `run_flow`, `verify`, `explain`
+
+**Tasks fallback** (decision #2, hosts without `ext-tasks`): `get_task`, `list_tasks`, `cancel_task`, `wait_task`
+
+**HITL:** `confirm_action` returns an `InputRequiredResult` (MRTR / elicitation)
+
+**Resources:** `browser://events` (JSON event stream) and `ui://browser-agent/replay` (MCP App HTML replay)
 
 ### Run the full gate chain
 
@@ -210,11 +227,15 @@ The full engineering spec lives in [`docs/mvp.md`](docs/mvp.md); every deviation
 ```text
 src/
   actions/       ActionLog (replay seed), ActionRunner, StabilityWaiter (act-then-wait)
+  apps/          MCP App replay HTML renderer
   context/       ContextPage abstraction + CDP a11y-tree conversion (axTree)
   diff/          diff engine, fingerprint-based uid rebinding, DiffTracker
   events/        event types, bounded EventBuffer, normalizer, EventCollector
-  protocol/      MCP tool bridge to @modelcontextprotocol/server v2
+  intent/        watch_until, run_flow, verify, explain
+  protocol/      MCP bridge: tools, Tasks fallback, MRTR, HTTP, resources
+  session/       BrowserSession composition root (observe+diff+log)
   snapshot/      a11y snapshot builder + uid→box overlay
+  tasks/         TaskStore + TaskRunner (owned Tasks state machine)
   tools/         tool framework: defineTool, ToolHandler, ToolMutex, Response, observe
   uid.ts         stable loaderId_backendNodeId uid generation
 docs/
@@ -228,29 +249,44 @@ scripts/         survivor-registry checker (TypeScript, emitted to dist-scripts/
 
 <a id="roadmap"></a>
 
-## Roadmap
+## Product surface
 
 ```mermaid
-gantt
-    title BrowserAgent milestones
-    dateFormat  YYYY-MM-DD
-    axisFormat  %d
+flowchart TB
+    subgraph Observe["See"]
+        O[observe]
+        D[diff since last observe]
+        E[browser://events]
+    end
 
-    section Foundation
-        M0 Tooling + test infra      :done, m0, 2026-08-11, 1d
-    section Core model
-        M1 Page model (observe)      :done, m1, 2026-08-11, 1d
-        M2 Diff engine               :done, m2, 2026-08-11, 1d
-        M4 Event layer               :done, m4, 2026-08-11, 1d
-        M3 Action primitives         :done, m3, 2026-08-11, 1d
-    section Protocol
-        M5 MCP protocol layer        :active, m5, 2026-08-12, 3d
-    section Intent & UI
-        M6 Intent tools              :m6, after m5, 3d
-        M7 MCP Apps replay UI        :m7, after m6, 3d
-    section Hardening
-        M8 Hardening                 :m8, after m7, 2d
+    subgraph Act["Act"]
+        A[click type hover scroll select press navigate]
+        F[run_flow]
+        W[watch_until]
+    end
+
+    subgraph Reason["Reason"]
+        V[verify]
+        X[explain]
+        C[confirm_action]
+    end
+
+    subgraph Replay["Replay"]
+        U[ui://browser-agent/replay]
+        T[get_task list_tasks cancel_task wait_task]
+    end
+
+    O --> D
+    O --> E
+    A --> U
+    F --> A
+    W --> O
+    V --> O
+    X --> O
+    C --> T
 ```
+
+`observe` is the unified primitive: a11y snapshot, screenshot, overlay, diff, and recent events in one object. Actions go through act-then-wait and seed the replay. Intent tools (`watch_until`, `run_flow`, `verify`, `explain`) sit on top of that model. Long-running work uses the owned Tasks state machine, with a blocking `wait_task` fallback for hosts that do not speak `ext-tasks`. Destructive steps can pause on `confirm_action` via ratified MRTR elicitation.
 
 ---
 

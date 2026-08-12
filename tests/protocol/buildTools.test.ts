@@ -98,6 +98,11 @@ describe('buildTools', () => {
     const page = recordPage()
     const ctx = { experimental: false, page }
     expect(await handlerFor('click')?.({ uid: '1' }, ctx)).toEqual({ ok: true })
+    expect(await handlerFor('type')?.({ uid: '1', text: 'x' }, ctx)).toEqual({ ok: true })
+    expect(await handlerFor('hover')?.({ uid: '1' }, ctx)).toEqual({ ok: true })
+    expect(await handlerFor('scroll')?.({ uid: '1', dx: 1, dy: 2 }, ctx)).toEqual({ ok: true })
+    expect(await handlerFor('select')?.({ uid: '1', value: 'v' }, ctx)).toEqual({ ok: true })
+    expect(await handlerFor('press')?.({ key: 'Enter' }, ctx)).toEqual({ ok: true })
     expect(await handlerFor('navigate')?.({ url: 'https://example.com' }, ctx)).toEqual({
       ok: true,
     })
@@ -118,6 +123,15 @@ describe('buildTools', () => {
   it('throws when the page is an object without click', async () => {
     await expect(
       handlerFor('click')?.({ uid: 'x' }, { experimental: false, page: { foo: 1 } }),
+    ).rejects.toThrow(/requires a page/i)
+  })
+
+  it('throws when the page has a non-function click', async () => {
+    await expect(
+      handlerFor('click')?.(
+        { uid: 'x' },
+        { experimental: false, page: { click: 'not-a-function' } },
+      ),
     ).rejects.toThrow(/requires a page/i)
   })
 

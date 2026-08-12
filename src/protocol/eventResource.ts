@@ -10,6 +10,9 @@ export interface ResourceContent {
 
 const EVENT_URI_PREFIX = 'browser://events'
 
+/** The resource config for the browser events resource. */
+export const EVENT_RESOURCE_CONFIG = { mimeType: 'application/json' } as const
+
 /** Serializes the event buffer into resource content blocks (JSON text). */
 export function toResourceContents(buffer: EventBuffer): ResourceContent[] {
   const events = buffer.all()
@@ -40,7 +43,7 @@ export function createEventResource(
   check: () => void
 } {
   let seen = buffer.all().length
-  server.registerResource('browser-events', uri, { mimeType: 'application/json' }, async () => ({
+  server.registerResource('browser-events', uri, EVENT_RESOURCE_CONFIG, async () => ({
     contents: toResourceContents(buffer),
   }))
   return {

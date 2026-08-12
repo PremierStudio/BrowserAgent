@@ -1,4 +1,9 @@
-import { McpServer } from '@modelcontextprotocol/server'
+import {
+  isInputRequiredResult,
+  McpServer,
+  type CallToolResult,
+  type InputRequiredResult,
+} from '@modelcontextprotocol/server'
 import type { ToolDefinition } from '../tools/types.js'
 
 /** The subset of ToolHandler that tool registration needs. */
@@ -13,6 +18,25 @@ export interface ToolCaller {
  */
 export function toToolAnnotations(readOnly: boolean): Record<string, boolean> {
   return readOnly ? { readOnlyHint: true } : { destructiveHint: true }
+}
+
+/**
+ * Wraps a tool handler result as an MCP CallToolResult. InputRequiredResult
+ * (MRTR, decision #4) is returned unchanged so the host can run elicitation.
+ */
+export function toCallToolResult(result: unknown): CallToolResult | InputRequiredResult {
+  if (isInputRequiredResult(result)) {
+    return result
+  }
+  const wrapped: CallToolResult = {
+    content: [{ type: 'text', text: JSON.stringify(result) }],
+    structuredContent: isStructured(result) ? result : { value: result },
+  }
+  return wrapped
+}
+
+function isStructured(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**
@@ -38,10 +62,7 @@ export function registerTools(
       },
       async (args) => {
         const result = await handler.call(tool.name, args)
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result) }],
-          structuredContent: result,
-        }
+        return toCallToolResult(result)
       },
     )
   }

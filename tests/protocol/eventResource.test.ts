@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { McpServer, InMemoryTransport } from '@modelcontextprotocol/server'
 import { EventBuffer } from '../../src/events/EventBuffer.js'
-import { createEventResource, toResourceContents } from '../../src/protocol/eventResource.js'
+import {
+  createEventResource,
+  toResourceContents,
+  EVENT_RESOURCE_CONFIG,
+} from '../../src/protocol/eventResource.js'
 
 function consoleEvent(
   text: string,
@@ -33,6 +37,10 @@ describe('toResourceContents', () => {
 })
 
 describe('createEventResource', () => {
+  it('registers the resource with a JSON mime type', () => {
+    expect(EVENT_RESOURCE_CONFIG.mimeType).toBe('application/json')
+  })
+
   it('registers the resource and notifies on new events', async () => {
     const server = new McpServer({ name: 'test', version: '0.0.1' })
     const buffer = new EventBuffer(10)

@@ -1,8 +1,16 @@
 import { McpServer, type ServerOptions } from '@modelcontextprotocol/server'
 import { ToolHandler } from '../tools/ToolHandler.js'
 import type { ToolDefinition } from '../tools/types.js'
+import type { ActionLog } from '../actions/ActionLog.js'
+import type { ContextPage } from '../context/ContextPage.js'
 import type { EventBuffer } from '../events/EventBuffer.js'
+import { BrowserSession } from '../session/BrowserSession.js'
+import type { TaskRunner } from '../tasks/TaskRunner.js'
+import type { TaskStore } from '../tasks/TaskStore.js'
+import { buildConfirmTool } from './confirmTool.js'
 import { createEventResource } from './eventResource.js'
+import { createReplayResource } from './replayResource.js'
+import { buildTaskTools } from './taskTools.js'
 import { registerTools } from './tools.js'
 
 /** The implementation info for the MCP server. */
@@ -11,10 +19,19 @@ export interface ServerInfo {
   version: string
 }
 
+/** The owned Tasks extension pair (decision #2). */
+interface TaskWiring {
+  store: TaskStore
+  runner: TaskRunner
+}
+
 /** Options for wiring browser services into the server. */
 export interface ServerWiring {
   tools?: ToolDefinition[]
   events?: EventBuffer
+  tasks?: TaskWiring
+  actions?: ActionLog
+  page?: ContextPage
 }
 
 /**
@@ -31,12 +48,27 @@ export function createServer(
 ): McpServer {
   const server = new McpServer(info, options)
   const handler = new ToolHandler()
-  for (const tool of wiring.tools ?? []) {
+  const tools: ToolDefinition[] = [...(wiring.tools ?? []), buildConfirmTool()]
+  if (wiring.tasks !== undefined) {
+    tools.push(...buildTaskTools(wiring.tasks.store, wiring.tasks.runner))
+  }
+  for (const tool of tools) {
     handler.register(tool)
   }
-  registerTools(server, wiring.tools ?? [], handler)
+  if (wiring.page !== undefined) {
+    handler.setPage(
+      new BrowserSession(wiring.page, {
+        events: wiring.events,
+        log: wiring.actions,
+      }),
+    )
+  }
+  registerTools(server, tools, handler)
   if (wiring.events !== undefined) {
     createEventResource(server, wiring.events, 'browser://events')
+  }
+  if (wiring.actions !== undefined) {
+    createReplayResource(server, wiring.actions, 'ui://browser-agent/replay')
   }
   return server
 }
