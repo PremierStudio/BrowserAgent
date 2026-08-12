@@ -14,7 +14,12 @@ function recordPage(): ContextPage {
   return {
     getElementByUid: async () => undefined,
     waitForEventsAfterAction: async () => undefined,
-    observe: async () => ({ snapshot: tree, image: '', overlay: {} }),
+    observe: async () => ({
+      snapshot: tree,
+      image: '',
+      overlay: {},
+      pageState: { url: '', title: '' },
+    }),
     emulate: async () => undefined,
     getDialog: async () => null,
     click: async () => undefined,

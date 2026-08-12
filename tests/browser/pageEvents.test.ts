@@ -4,6 +4,7 @@ import { EventCollector, type EventSource } from '../../src/events/EventCollecto
 import {
   adaptPageEvents,
   adaptPageEventsFromUnknown,
+  combineEventSources,
   type PageEventView,
 } from '../../src/browser/pageEvents.js'
 
@@ -300,6 +301,23 @@ describe('adaptPageEvents', () => {
       const received = listen(adaptPageEvents(page), 'console')
       page.emit('response', { url: 'https://example.com', status: 200 })
       expect(received).toEqual([])
+    })
+  })
+
+  describe('combineEventSources', () => {
+    it('delivers an event to a handler from every inner source', () => {
+      const a = makePage()
+      const b = makePage()
+      const received: unknown[] = []
+      combineEventSources(adaptPageEvents(a), adaptPageEvents(b)).on('console', (payload) => {
+        received.push(payload)
+      })
+      a.emit('console', { type: 'log', text: 'a' })
+      b.emit('console', { type: 'log', text: 'b' })
+      expect(received).toEqual([
+        { type: 'log', text: 'a' },
+        { type: 'log', text: 'b' },
+      ])
     })
   })
 

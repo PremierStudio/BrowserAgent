@@ -1,6 +1,5 @@
 import type { SnapshotNode } from '../snapshot/a11ySnapshot.js'
 import type { Overlay } from '../snapshot/overlay.js'
-import { parseUid } from '../uid.js'
 import {
   clickUid,
   hoverUid,
@@ -10,13 +9,18 @@ import {
   selectUid,
   typeUid,
 } from './actOnPage.js'
+import { getPageDialog, DialogTracker } from './dialogPage.js'
+import { emulatePage } from './emulatePage.js'
 import { observePage } from './observePage.js'
+import { resolveUid } from './resolveUid.js'
+import { createActionWaiter, memoryMutationSource } from './waitAfterAction.js'
 
 /** The result of observing a page. */
 export interface ObserveResult {
   snapshot: SnapshotNode
   image: string
   overlay: Overlay
+  pageState: { url: string; title: string }
 }
 
 /** A narrow contract that hides Puppeteer behind a testable interface. */
@@ -53,23 +57,28 @@ export interface PageLike {
  */
 export class PuppeteerContextPage implements ContextPage {
   private readonly page: PageLike
+  private readonly waitAfter: { wait: () => Promise<boolean> }
+  private readonly dialogs = new DialogTracker()
 
   constructor(page: PageLike) {
     this.page = page
+    this.waitAfter = createActionWaiter(memoryMutationSource(), {
+      quietPeriod: 50,
+      timeout: 1000,
+    })
+  }
+
+  /** Records a javascript-dialog opening from the page event stream. */
+  onDialogOpening(payload: unknown): void {
+    this.dialogs.onOpening(payload)
   }
 
   async getElementByUid(uid: string): Promise<unknown> {
-    // Resolve a uid (loaderId_backendNodeId) to a live element reference.
-    const parts = parseUid(uid)
-    if (parts === null) {
-      throw new Error(`Invalid uid: ${uid}`)
-    }
-    return { uid, backendNodeId: parts.backendNodeId }
+    return resolveUid(this.page, uid)
   }
 
   async waitForEventsAfterAction(): Promise<void> {
-    // Wait for navigation and DOM stability after an action.
-    return undefined
+    await this.waitAfter.wait()
   }
 
   async observe(): Promise<ObserveResult> {
@@ -77,12 +86,11 @@ export class PuppeteerContextPage implements ContextPage {
   }
 
   async emulate(options: unknown): Promise<void> {
-    void options
-    return undefined
+    await emulatePage(this.page, options)
   }
 
   async getDialog(): Promise<unknown> {
-    return null
+    return getPageDialog(this.dialogs)
   }
 
   async click(uid: string): Promise<void> {

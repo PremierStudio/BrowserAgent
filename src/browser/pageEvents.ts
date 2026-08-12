@@ -95,6 +95,17 @@ export function adaptPageEventsFromUnknown(page: unknown): EventSource {
   return adaptPageEvents(page)
 }
 
+/** Forwards EventSource.on to every inner source (console + DOM mutations). */
+export function combineEventSources(...sources: EventSource[]): EventSource {
+  return {
+    on(event: string, handler: (payload: unknown) => void): void {
+      for (const source of sources) {
+        source.on(event, handler)
+      }
+    },
+  }
+}
+
 /**
  * Adapts a Puppeteer-like page emitter into the EventSource EventCollector
  * already understands. Accessor-shaped payloads (type()/url()/status()) are

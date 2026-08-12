@@ -15,7 +15,12 @@ function pageWith(snapshot: SnapshotNode, calls: string[] = []): ContextPage {
     waitForEventsAfterAction: async () => {
       calls.push('wait')
     },
-    observe: async () => ({ snapshot, image: 'img', overlay: {} }),
+    observe: async () => ({
+      snapshot,
+      image: 'img',
+      overlay: {},
+      pageState: { url: '', title: '' },
+    }),
     emulate: async () => {
       calls.push('emulate')
     },
@@ -78,7 +83,12 @@ describe('BrowserSession', () => {
         ...page,
         observe: async () => {
           n += 1
-          return { snapshot: n === 1 ? first : second, image: '', overlay: {} }
+          return {
+            snapshot: n === 1 ? first : second,
+            image: '',
+            overlay: {},
+            pageState: { url: '', title: '' },
+          }
         },
       },
       { tracker: new DiffTracker('session'), events: new EventBuffer(10) },
@@ -104,12 +114,19 @@ describe('BrowserSession', () => {
     await session.navigate('https://example.com')
     expect(calls).toEqual([
       'click:btn',
+      'wait',
       'type:in:x',
+      'wait',
       'hover:btn',
+      'wait',
       'scroll:box:1:2',
+      'wait',
       'select:sel:a',
+      'wait',
       'press:Enter',
+      'wait',
       'navigate:https://example.com',
+      'wait',
     ])
     expect(log.all().map((e) => e.action)).toEqual([
       'click',
@@ -121,6 +138,7 @@ describe('BrowserSession', () => {
       'navigate',
     ])
     expect(log.all()[0]?.timestamp).toBe(42)
+    expect(calls).toContain('wait')
   })
 
   it('delegates read helpers to the page', async () => {

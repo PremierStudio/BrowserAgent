@@ -80,6 +80,14 @@ export function toPageLikeFromUnknown(page: unknown): PageLike {
 }
 
 export function toPageLike(page: PuppeteerPageView): PageLike {
+  let sessionPromise:
+    Promise<{ send: (method: string, params?: unknown) => Promise<unknown> }> | undefined
+  const session = (): Promise<{ send: (method: string, params?: unknown) => Promise<unknown> }> => {
+    if (sessionPromise === undefined) {
+      sessionPromise = page.createCDPSession()
+    }
+    return sessionPromise
+  }
   return {
     accessibility: {
       snapshot: () => page.accessibility.snapshot(),
@@ -100,8 +108,8 @@ export function toPageLike(page: PuppeteerPageView): PageLike {
     },
     keyboardPress: (key: string) => page.keyboard.press(key),
     cdp: async (_session: string, method: string, params?: unknown) => {
-      const session = await page.createCDPSession()
-      return session.send(method, params)
+      const cdpSession = await session()
+      return cdpSession.send(method, params)
     },
   }
 }

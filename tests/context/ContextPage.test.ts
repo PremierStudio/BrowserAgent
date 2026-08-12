@@ -37,13 +37,14 @@ describe('PuppeteerContextPage', () => {
     expect(result.snapshot.role).toBe('generic')
     expect(result.image).toBe('data:image/png;base64,abc')
     expect(result.overlay).toEqual({})
+    expect(result.pageState).toEqual({ url: '', title: '' })
   })
 
   it('getElementByUid resolves an element by uid', async () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)
     const element = await context.getElementByUid('loader-1_42')
-    expect(element).toEqual({ uid: 'loader-1_42', backendNodeId: 42 })
+    expect(element).toEqual({ uid: 'loader-1_42', backendNodeId: 42, objectId: 'obj-1' })
   })
 
   it('getElementByUid throws for an invalid uid', async () => {
@@ -68,6 +69,25 @@ describe('PuppeteerContextPage', () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)
     expect(await context.getDialog()).toBeNull()
+  })
+
+  it('getDialog returns a recorded javascript dialog', async () => {
+    const page = makeMockPage()
+    const context = new PuppeteerContextPage(page)
+    context.onDialogOpening({ type: 'alert', message: 'hi' })
+    expect(await context.getDialog()).toEqual({ type: 'alert', message: 'hi' })
+  })
+
+  it('emulate forwards CPU throttling to CDP', async () => {
+    const methods: string[] = []
+    const page = makeMockPage()
+    page.cdp = async (_session, method) => {
+      methods.push(method)
+      return {}
+    }
+    const context = new PuppeteerContextPage(page)
+    await context.emulate({ cpu: 4 })
+    expect(methods).toContain('Emulation.setCPUThrottlingRate')
   })
 
   it('action methods resolve', async () => {

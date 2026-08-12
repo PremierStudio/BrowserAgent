@@ -12,6 +12,7 @@ function makeContextPage(overrides: Partial<ContextPage> = {}): ContextPage {
       snapshot: { uid: 'loader-1_1', role: 'generic', name: '' },
       image: 'data:image/png;base64,abc',
       overlay: {},
+      pageState: { url: '', title: '' },
     }),
     emulate: async () => undefined,
     getDialog: async () => null,
@@ -46,6 +47,7 @@ describe('observeTool', () => {
       snapshot: { uid: 'loader-1_1', role: 'generic', name: '' },
       image: 'data:image/png;base64,abc',
       overlay: {},
+      pageState: { url: '', title: '' },
     })
   })
 

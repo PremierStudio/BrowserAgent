@@ -14,6 +14,7 @@
     "knip": "knip --max-issues 0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run tests/integration",
     "coverage": "vitest run --coverage",
     "mutation": "stryker run",
     "survivors": "npm run build:scripts && node dist-scripts/survivors.js",

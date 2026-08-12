@@ -2,6 +2,7 @@ import type { PageLike, ObserveResult } from './ContextPage.js'
 import { buildRawTree, type AxNode, type BoxLookup } from './axTree.js'
 import { buildSnapshot, type BoundingBox } from '../snapshot/a11ySnapshot.js'
 import { buildOverlay } from '../snapshot/overlay.js'
+import { collectZIndexes, enableAccessibility, readPageState } from './observeExtras.js'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -134,15 +135,24 @@ async function collectBoxes(page: PageLike, nodes: AxNode[]): Promise<BoxLookup>
  * plus a screenshot. Pure enough to unit-test with a fake PageLike.
  */
 export async function observePage(page: PageLike): Promise<ObserveResult> {
+  await enableAccessibility(page)
   const ax = await page.cdp('page', 'Accessibility.getFullAXTree')
   const frame = await page.cdp('page', 'Page.getFrameTree')
   const nodes = axNodesFrom(ax)
   const loaderId = loaderIdFrom(frame)
   const boxes = await collectBoxes(page, nodes)
-  const snapshot = buildSnapshot(buildRawTree(nodes, boxes, loaderId))
+  const ids: number[] = []
+  for (const node of nodes) {
+    if (node.backendDOMNodeId !== undefined) {
+      ids.push(node.backendDOMNodeId)
+    }
+  }
+  const zIndexes = await collectZIndexes(page, ids)
+  const snapshot = buildSnapshot(buildRawTree(nodes, boxes, loaderId, zIndexes))
   return {
     snapshot,
     image: await page.screenshot(),
     overlay: buildOverlay(snapshot),
+    pageState: await readPageState(page),
   }
 }

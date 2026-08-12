@@ -151,6 +151,12 @@ collector, and serves the fully-wired MCP server:
 npm start
 ```
 
+Streamable HTTP (same tool set) on port 3333, or `PORT`:
+
+```bash
+npm start -- --http
+```
+
 Point any MCP client (Claude Desktop, a custom host, etc.) at the stdio
 command `node dist/cli.js`. The server exposes `tools/list`, `tools/call`,
 and `server/discover` via the v2 `@modelcontextprotocol/server` SDK.
@@ -175,16 +181,17 @@ npm run ci
 
 ### Individual gates
 
-| Command             | What it does                                         |
-| ------------------- | ---------------------------------------------------- |
-| `npm run typecheck` | `tsc --noEmit`                                       |
-| `npm run lint`      | ESLint (bans `as`/`any`/`!`/`@ts-ignore`/`.forEach`) |
-| `npm run format`    | Prettier check                                       |
-| `npm run knip`      | dead code / unused deps (zero findings)              |
-| `npm test`          | Vitest                                               |
-| `npm run coverage`  | 100% threshold (lines/branches/functions/statements) |
-| `npm run mutation`  | Stryker, 100% threshold + survivor registry          |
-| `npm run reports`   | coverage + JUnit XML into `reports/`                 |
+| Command                    | What it does                                                  |
+| -------------------------- | ------------------------------------------------------------- |
+| `npm run typecheck`        | `tsc --noEmit`                                                |
+| `npm run lint`             | ESLint (bans `as`/`any`/`!`/`@ts-ignore`/`.forEach`)          |
+| `npm run format`           | Prettier check                                                |
+| `npm run knip`             | dead code / unused deps (zero findings)                       |
+| `npm test`                 | Vitest                                                        |
+| `npm run test:integration` | Real Chrome observe/click (set `BROWSER_AGENT_INTEGRATION=1`) |
+| `npm run coverage`         | 100% threshold (lines/branches/functions/statements)          |
+| `npm run mutation`         | Stryker, 100% threshold + survivor registry                   |
+| `npm run reports`          | coverage + JUnit XML into `reports/`                          |
 
 ### Software stack
 

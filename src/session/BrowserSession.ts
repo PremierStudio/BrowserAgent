@@ -39,7 +39,16 @@ export class BrowserSession implements ContextPage {
     this.tracker = options.tracker ?? new DiffTracker(OWNER)
     this.events = options.events ?? new EventBuffer(100)
     this.log = options.log ?? new ActionLog(100)
-    this.runner = new ActionRunner(this.log, { wait: async () => true }, options.clock ?? (() => 0))
+    this.runner = new ActionRunner(
+      this.log,
+      {
+        wait: async () => {
+          await this.page.waitForEventsAfterAction()
+          return true
+        },
+      },
+      options.clock ?? (() => 0),
+    )
   }
 
   get actionLog(): ActionLog {

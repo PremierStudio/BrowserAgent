@@ -182,6 +182,15 @@ describe('toPageLike', () => {
     expect(() => toPageLikeFromUnknown(null)).toThrow(/not a puppeteer page/i)
   })
 
+  it('reuses one CDP session across calls so objectIds stay valid', async () => {
+    const fake = recordingPage()
+    const page = toPageLike(fake.view)
+    await page.cdp('page', 'DOM.resolveNode', { backendNodeId: 1 })
+    await page.cdp('page', 'Runtime.callFunctionOn', { objectId: 'obj-1' })
+    expect(fake.sessionsCreated).toBe(1)
+    expect(fake.sendCalls).toHaveLength(2)
+  })
+
   it('cdp without params still sends the method', async () => {
     const fake = recordingPage({ sendResult: { enabled: true } })
     const result = await toPageLike(fake.view).cdp('unused-session', 'Page.enable')

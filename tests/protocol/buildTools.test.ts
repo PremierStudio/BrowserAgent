@@ -12,6 +12,7 @@ function recordPage(): ContextPage & { calls: string[] } {
       snapshot: { uid: 'x', role: 'generic', name: '' },
       image: '',
       overlay: {},
+      pageState: { url: '', title: '' },
     }),
     emulate: async () => undefined,
     getDialog: async () => null,
@@ -70,6 +71,7 @@ describe('buildTools', () => {
       snapshot: { uid: 'x', role: 'generic', name: '' },
       image: '',
       overlay: {},
+      pageState: { url: '', title: '' },
     })
   })
 

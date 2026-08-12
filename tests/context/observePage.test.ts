@@ -70,9 +70,11 @@ describe('observePage', () => {
       width: 80,
       height: 24,
     })
+    expect(calls).toContain('Accessibility.enable')
     expect(calls).toContain('Accessibility.getFullAXTree')
     expect(calls).toContain('Page.getFrameTree')
     expect(calls).toContain('DOM.getBoxModel')
+    expect(result.pageState).toEqual({ url: '', title: '' })
   })
 
   it('omits overlay entries when getBoxModel fails', async () => {
