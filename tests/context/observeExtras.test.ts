@@ -95,29 +95,37 @@ describe('readPageState', () => {
 })
 
 describe('collectZIndexes', () => {
-  it('returns an empty map and does not evaluate when there are no ids', async () => {
-    const page = fakePage({ evaluateResult: [{ id: 1, z: 9 }] })
+  it('returns an empty map and does not call CDP when there are no ids', async () => {
+    const page = fakePage({})
     const result = await collectZIndexes(page, [])
     expect(result.size).toBe(0)
-    expect([...result.entries()]).toEqual([])
+    expect(page.cdpCalls).toEqual([])
     expect(page.evalCalls).toEqual([])
   })
 
-  it('evaluates the ids once and maps numeric id/z pairs from an array', async () => {
-    const ids = [10, 20, 30]
-    const page = fakePage({
-      evaluateResult: [
-        { id: 10, z: 1 },
-        { id: 20, z: 0 },
-        { id: 30, z: -1 },
-      ],
-    })
-    const result = await collectZIndexes(page, ids)
-    expect(page.evalCalls).toHaveLength(1)
-    expect(typeof page.evalCalls[0]?.fn).toBe('string')
-    expect(page.evalCalls[0]?.fn.length).toBeGreaterThan(0)
-    expect(page.evalCalls[0]?.fn).toMatch(/getComputedStyle|zIndex|z-index/)
-    expect(page.evalCalls[0]?.arg).toEqual(ids)
+  it('resolves each backend node and reads computed z-index via callFunctionOn', async () => {
+    const page = fakePage({})
+    const values = new Map<string, unknown>([
+      ['obj-10', 1],
+      ['obj-20', '0'],
+      ['obj-30', -1],
+    ])
+    page.cdp = async (session, method, params) => {
+      page.cdpCalls.push({ session, method, params })
+      if (method === 'DOM.resolveNode' && typeof params === 'object' && params !== null) {
+        const id = 'backendNodeId' in params ? params.backendNodeId : undefined
+        return { object: { objectId: `obj-${String(id)}` } }
+      }
+      if (method === 'Runtime.callFunctionOn' && typeof params === 'object' && params !== null) {
+        const objectId = 'objectId' in params ? params.objectId : undefined
+        return { result: { value: values.get(String(objectId)) } }
+      }
+      return {}
+    }
+    const result = await collectZIndexes(page, [10, 20, 30])
+    expect(page.cdpCalls.some((c) => c.method === 'DOM.resolveNode')).toBe(true)
+    expect(page.cdpCalls.some((c) => c.method === 'Runtime.callFunctionOn')).toBe(true)
+    expect(JSON.stringify(page.cdpCalls)).toMatch(/getComputedStyle/)
     expect([...result.entries()]).toEqual([
       [10, 1],
       [20, 0],
@@ -125,74 +133,51 @@ describe('collectZIndexes', () => {
     ])
   })
 
-  it('maps a record of id-string keys to numeric z values', async () => {
-    const page = fakePage({
-      evaluateResult: { '4': 2, '8': 7 },
-    })
-    const result = await collectZIndexes(page, [4, 8])
-    expect(result.get(4)).toBe(2)
-    expect(result.get(8)).toBe(7)
-    expect(result.size).toBe(2)
-  })
-
-  it('skips non-numeric z values and invalid array entries', async () => {
-    const page = fakePage({
-      evaluateResult: [
-        { id: 1, z: 5 },
-        { id: 2, z: 'auto' },
-        { id: 3, z: Number.NaN },
-        { id: 4, z: Number.POSITIVE_INFINITY },
-        { id: '5', z: 1 },
-        { z: 2 },
-        { id: 6 },
-        null,
-        'nope',
-        { id: 7, z: 9 },
-        { id: 0, z: 3 },
-      ],
-    })
-    const result = await collectZIndexes(page, [1, 2, 3, 4, 5, 6, 7, 0])
-    expect([...result.entries()]).toEqual([
-      [1, 5],
-      [7, 9],
-      [0, 3],
-    ])
-  })
-
-  it('skips non-numeric record values and non-numeric keys', async () => {
-    const page = fakePage({
-      evaluateResult: { '1': 3, two: 4, '3': 'auto', '4': null, '': 8 },
-    })
-    const result = await collectZIndexes(page, [1, 2, 3, 4])
-    expect([...result.entries()]).toEqual([[1, 3]])
-  })
-
-  it('returns an empty map when evaluate is not an array or record map', async () => {
-    const cases: unknown[] = [null, undefined, 1, 'nope', true]
-    for (const evaluateResult of cases) {
-      const page = fakePage({ evaluateResult })
-      const result = await collectZIndexes(page, [1])
-      expect(result.size).toBe(0)
-      expect(page.evalCalls).toHaveLength(1)
+  it('skips nodes that do not resolve and non-numeric z-index values', async () => {
+    const page = fakePage({})
+    let n = 0
+    page.cdp = async (session, method, params) => {
+      page.cdpCalls.push({ session, method, params })
+      if (method === 'DOM.resolveNode') {
+        n += 1
+        if (n === 1) {
+          return {}
+        }
+        return { object: { objectId: `obj-${n}` } }
+      }
+      if (method === 'Runtime.callFunctionOn') {
+        if (n === 2) {
+          return { result: { value: 'auto' } }
+        }
+        if (n === 3) {
+          return { result: { value: 7 } }
+        }
+        return { result: { value: Number.NaN } }
+      }
+      return {}
     }
-  })
-
-  it('returns an empty map when evaluate yields an empty array', async () => {
-    const page = fakePage({ evaluateResult: [] })
-    const result = await collectZIndexes(page, [1])
-    expect(result.size).toBe(0)
-    expect(page.evalCalls).toHaveLength(1)
-  })
-
-  it('last write wins when the same id appears twice', async () => {
-    const page = fakePage({
-      evaluateResult: [
-        { id: 1, z: 1 },
-        { id: 1, z: 9 },
-      ],
-    })
-    const result = await collectZIndexes(page, [1])
-    expect(result.get(1)).toBe(9)
+    const result = await collectZIndexes(page, [1, 2, 3, 4])
+    expect(result.get(3)).toBe(7)
     expect(result.size).toBe(1)
+  })
+
+  it('skips a node when callFunctionOn has no numeric result', async () => {
+    const page = fakePage({})
+    page.cdp = async (_session, method) => {
+      if (method === 'DOM.resolveNode') {
+        return { object: { objectId: 'obj' } }
+      }
+      return {}
+    }
+    expect((await collectZIndexes(page, [1])).size).toBe(0)
+  })
+
+  it('skips a node when resolveNode throws', async () => {
+    const page = fakePage({})
+    page.cdp = async () => {
+      throw new Error('detached')
+    }
+    const result = await collectZIndexes(page, [9])
+    expect(result.size).toBe(0)
   })
 })

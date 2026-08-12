@@ -63,4 +63,21 @@ export function createDomMutationBridge(): {
  * posts `dommutated` messages for added, removed, and attribute/text changes.
  */
 export const INSTALL_MUTATION_OBSERVER =
-  '(function () { const observer = new MutationObserver(function (records) { for (const record of records) { let kind = "changed"; if (record.type === "childList") { kind = record.addedNodes.length > 0 ? "added" : "removed" } const node = record.target; const target = node && node.nodeName ? String(node.nodeName) : ""; window.postMessage({ type: "dommutated", kind: kind, target: target }, "*") } }); observer.observe(document, { childList: true, subtree: true, attributes: true, characterData: true }) })()'
+  '(function () { const observer = new MutationObserver(function (records) { for (const record of records) { let kind = "changed"; if (record.type === "childList") { kind = record.addedNodes.length > 0 ? "added" : "removed" } const node = record.target; const target = node && node.nodeName ? String(node.nodeName) : ""; if (typeof globalThis.__baIngest === "function") { globalThis.__baIngest({ type: "dommutated", kind: kind, target: target }) } } }); observer.observe(document, { childList: true, subtree: true, attributes: true, characterData: true }) })()'
+
+/** Expose + evaluate hooks used to install the observer on a live page. */
+export type EvaluateFn = (script: string) => Promise<unknown>
+export type ExposeFn = (name: string, fn: (payload: unknown) => void) => Promise<void>
+
+/**
+ * Exposes `__baIngest` into the page, then evaluates the MutationObserver
+ * installer so live DOM changes call ingest.
+ */
+export async function installMutationObserver(
+  evaluate: EvaluateFn,
+  expose: ExposeFn,
+  ingest: (payload: unknown) => void,
+): Promise<void> {
+  await expose('__baIngest', ingest)
+  await evaluate(INSTALL_MUTATION_OBSERVER)
+}

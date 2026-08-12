@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  exposeFunctionFromUnknown,
   toPageLike,
   toPageLikeFromUnknown,
   type PuppeteerPageView,
@@ -172,6 +173,26 @@ describe('toPageLike', () => {
     expect(result).toEqual({ root: { nodeId: 1 } })
     expect(fake.sessionsCreated).toBe(1)
     expect(fake.sendCalls).toEqual([{ method: 'DOM.getDocument', params: { depth: 1 } }])
+  })
+
+  it('exposeFunctionFromUnknown calls exposeFunction or throws', async () => {
+    const names: string[] = []
+    await exposeFunctionFromUnknown(
+      {
+        exposeFunction: async (name: string) => {
+          names.push(name)
+        },
+      },
+      '__baIngest',
+      () => undefined,
+    )
+    expect(names).toEqual(['__baIngest'])
+    await expect(exposeFunctionFromUnknown({}, 'x', () => undefined)).rejects.toThrow(
+      /cannot expose/i,
+    )
+    await expect(exposeFunctionFromUnknown(null, 'x', () => undefined)).rejects.toThrow(
+      /cannot expose/i,
+    )
   })
 
   it('toPageLikeFromUnknown accepts a structural page and rejects a non-page', async () => {

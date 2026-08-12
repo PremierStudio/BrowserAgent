@@ -1,18 +1,27 @@
 import { serveStdio } from '@modelcontextprotocol/server/stdio'
 import puppeteer from 'puppeteer'
-import { toPageLikeFromUnknown } from './browser/adaptPage.js'
-import { createDomMutationBridge, INSTALL_MUTATION_OBSERVER } from './browser/domMutations.js'
+import { exposeFunctionFromUnknown, toPageLikeFromUnknown } from './browser/adaptPage.js'
+import { createDomMutationBridge, installMutationObserver } from './browser/domMutations.js'
 import { adaptPageEventsFromUnknown, combineEventSources } from './browser/pageEvents.js'
 import { PuppeteerContextPage } from './context/ContextPage.js'
+import { memoryMutationSource } from './context/waitAfterAction.js'
 import { buildCliMain, buildHttpHandler } from './protocol/cli.js'
 import { isHttpArg, listenHttp } from './protocol/httpListen.js'
 
 const browser = await puppeteer.launch({ headless: true })
 const raw = await browser.newPage()
 const like = toPageLikeFromUnknown(raw)
-await like.evaluate(INSTALL_MUTATION_OBSERVER)
-const context = new PuppeteerContextPage(like)
+const mutations = memoryMutationSource()
+const context = new PuppeteerContextPage(like, { mutations })
 const bridge = createDomMutationBridge()
+await installMutationObserver(
+  (script) => like.evaluate(script),
+  (name, fn) => exposeFunctionFromUnknown(raw, name, fn),
+  (payload) => {
+    bridge.ingest(payload)
+    mutations.emit()
+  },
+)
 const eventSource = combineEventSources(adaptPageEventsFromUnknown(raw), bridge.source)
 const options = { page: context, eventSource }
 

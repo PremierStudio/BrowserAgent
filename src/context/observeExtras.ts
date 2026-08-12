@@ -8,9 +8,6 @@ export interface PageState {
 
 const READ_PAGE_STATE = '() => ({ url: location.href, title: document.title })'
 
-const COLLECT_Z_INDEXES =
-  '(ids) => { const out = []; if (!Array.isArray(ids)) { return out } for (const id of ids) { const el = document.querySelector("[data-backend-node-id=\\"" + String(id) + "\\"]"); if (el === null) { continue } const z = Number(getComputedStyle(el).zIndex); if (Number.isFinite(z)) { out.push({ id: id, z: z }) } } return out }'
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -23,54 +20,28 @@ function isPageState(value: unknown): value is PageState {
   return isRecord(value) && typeof value.url === 'string' && typeof value.title === 'string'
 }
 
-function parseIdKey(key: string): number | undefined {
-  if (key === '') {
+function objectIdFrom(result: unknown): string | undefined {
+  if (!isRecord(result) || !isRecord(result.object) || typeof result.object.objectId !== 'string') {
     return undefined
   }
-  const id = Number(key)
-  if (Number.isFinite(id)) {
-    return id
+  return result.object.objectId
+}
+
+function zFromCall(result: unknown): number | undefined {
+  if (!isRecord(result) || !isRecord(result.result)) {
+    return undefined
+  }
+  const value = result.result.value
+  if (isFiniteNumber(value)) {
+    return value
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
   }
   return undefined
-}
-
-function addPair(map: Map<number, number>, id: unknown, z: unknown): void {
-  if (isFiniteNumber(id) && isFiniteNumber(z)) {
-    map.set(id, z)
-  }
-}
-
-function zIndexesFromArray(items: unknown[]): Map<number, number> {
-  const map = new Map<number, number>()
-  for (const item of items) {
-    if (!isRecord(item)) {
-      continue
-    }
-    addPair(map, item.id, item.z)
-  }
-  return map
-}
-
-function zIndexesFromRecord(record: Record<string, unknown>): Map<number, number> {
-  const map = new Map<number, number>()
-  for (const key of Object.keys(record)) {
-    const id = parseIdKey(key)
-    if (id === undefined) {
-      continue
-    }
-    addPair(map, id, record[key])
-  }
-  return map
-}
-
-function zIndexesFrom(value: unknown): Map<number, number> {
-  if (Array.isArray(value)) {
-    return zIndexesFromArray(value)
-  }
-  if (isRecord(value)) {
-    return zIndexesFromRecord(value)
-  }
-  return new Map()
 }
 
 /** Enables the CDP Accessibility domain on the page session. */
@@ -88,16 +59,35 @@ export async function readPageState(page: PageLike): Promise<PageState> {
 }
 
 /**
- * Collects computed z-index values for the given backend node ids via a
- * single page.evaluate. Empty input skips evaluation.
+ * Collects computed z-index values for the given backend node ids via CDP
+ * DOM.resolveNode + Runtime.callFunctionOn(getComputedStyle). Empty input
+ * skips CDP. Nodes that fail to resolve or have a non-numeric z-index are
+ * omitted.
  */
 export async function collectZIndexes(
   page: PageLike,
   backendNodeIds: number[],
 ): Promise<Map<number, number>> {
-  if (backendNodeIds.length === 0) {
-    return new Map()
+  const map = new Map<number, number>()
+  for (const id of backendNodeIds) {
+    try {
+      const resolved = await page.cdp('page', 'DOM.resolveNode', { backendNodeId: id })
+      const objectId = objectIdFrom(resolved)
+      if (objectId === undefined) {
+        continue
+      }
+      const called = await page.cdp('page', 'Runtime.callFunctionOn', {
+        objectId,
+        functionDeclaration: 'function() { return getComputedStyle(this).zIndex }',
+        returnByValue: true,
+      })
+      const z = zFromCall(called)
+      if (z !== undefined) {
+        map.set(id, z)
+      }
+    } catch {
+      continue
+    }
   }
-  const result = await page.evaluate(COLLECT_Z_INDEXES, backendNodeIds)
-  return zIndexesFrom(result)
+  return map
 }

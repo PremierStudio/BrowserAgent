@@ -59,6 +59,24 @@ describe('PuppeteerContextPage', () => {
     await expect(context.waitForEventsAfterAction()).resolves.toBeUndefined()
   })
 
+  it('notifyMutation restarts the quiet period before wait returns', async () => {
+    const page = makeMockPage()
+    let now = 0
+    let polls = 0
+    const context = new PuppeteerContextPage(page, {
+      clock: () => now,
+      quietPeriod: 40,
+      timeout: 100,
+      sleep: async () => {
+        polls += 1
+        now += 20
+      },
+    })
+    context.notifyMutation()
+    await context.waitForEventsAfterAction()
+    expect(polls).toBeGreaterThan(0)
+  })
+
   it('emulate resolves', async () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)

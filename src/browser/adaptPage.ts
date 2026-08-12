@@ -69,9 +69,20 @@ function isPuppeteerPageView(value: unknown): value is PuppeteerPageView {
 }
 
 /**
- * Adapts an unknown page (typically a real Puppeteer Page) after a structural
- * check, so the CLI can pass a live Page without type assertions.
+ * Calls page.exposeFunction when the unknown page has that method, so the
+ * CLI can bind `__baIngest` without a type assertion.
  */
+export async function exposeFunctionFromUnknown(
+  page: unknown,
+  name: string,
+  fn: (payload: unknown) => void,
+): Promise<void> {
+  if (!isRecord(page) || typeof page.exposeFunction !== 'function') {
+    throw new Error('page cannot expose functions')
+  }
+  await page.exposeFunction(name, fn)
+}
+
 export function toPageLikeFromUnknown(page: unknown): PageLike {
   if (!isPuppeteerPageView(page)) {
     throw new Error('not a puppeteer page')

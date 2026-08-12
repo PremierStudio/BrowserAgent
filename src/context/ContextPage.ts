@@ -14,6 +14,7 @@ import { emulatePage } from './emulatePage.js'
 import { observePage } from './observePage.js'
 import { resolveUid } from './resolveUid.js'
 import { createActionWaiter, memoryMutationSource } from './waitAfterAction.js'
+import type { MutationSource } from '../actions/StabilityWaiter.js'
 
 /** The result of observing a page. */
 export interface ObserveResult {
@@ -21,6 +22,15 @@ export interface ObserveResult {
   image: string
   overlay: Overlay
   pageState: { url: string; title: string }
+}
+
+/** Optional waiter wiring for tests and the live MutationObserver. */
+interface ContextPageOptions {
+  mutations?: MutationSource & { emit: () => void }
+  clock?: () => number
+  sleep?: (ms: number) => Promise<void>
+  quietPeriod?: number
+  timeout?: number
 }
 
 /** A narrow contract that hides Puppeteer behind a testable interface. */
@@ -58,14 +68,23 @@ export interface PageLike {
 export class PuppeteerContextPage implements ContextPage {
   private readonly page: PageLike
   private readonly waitAfter: { wait: () => Promise<boolean> }
+  private readonly mutations: MutationSource & { emit: () => void }
   private readonly dialogs = new DialogTracker()
 
-  constructor(page: PageLike) {
+  constructor(page: PageLike, options: ContextPageOptions = {}) {
     this.page = page
-    this.waitAfter = createActionWaiter(memoryMutationSource(), {
-      quietPeriod: 50,
-      timeout: 1000,
+    this.mutations = options.mutations ?? memoryMutationSource()
+    this.waitAfter = createActionWaiter(this.mutations, {
+      quietPeriod: options.quietPeriod ?? 50,
+      timeout: options.timeout ?? 1000,
+      clock: options.clock,
+      sleep: options.sleep,
     })
+  }
+
+  /** Records a live DOM mutation so the act-then-wait quiet period restarts. */
+  notifyMutation(): void {
+    this.mutations.emit()
   }
 
   /** Records a javascript-dialog opening from the page event stream. */

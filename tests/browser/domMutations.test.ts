@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createDomMutationBridge,
   INSTALL_MUTATION_OBSERVER,
+  installMutationObserver,
   parseMutationRecord,
 } from '../../src/browser/domMutations.js'
 import type { EventSource } from '../../src/events/EventCollector.js'
@@ -129,5 +130,30 @@ describe('INSTALL_MUTATION_OBSERVER', () => {
     expect(INSTALL_MUTATION_OBSERVER).toContain('MutationObserver')
     expect(INSTALL_MUTATION_OBSERVER).toMatch(/dommutated|added/)
     expect(INSTALL_MUTATION_OBSERVER).toContain('observe')
+    expect(INSTALL_MUTATION_OBSERVER).toContain('__baIngest')
+  })
+})
+
+describe('installMutationObserver', () => {
+  it('exposes __baIngest then evaluates the installer', async () => {
+    const names: string[] = []
+    const scripts: string[] = []
+    const received: unknown[] = []
+    await installMutationObserver(
+      async (fn) => {
+        scripts.push(fn)
+      },
+      async (name, fn) => {
+        names.push(name)
+        fn({ kind: 'added', target: 'DIV' })
+      },
+      (payload) => {
+        received.push(payload)
+      },
+    )
+    expect(names).toEqual(['__baIngest'])
+    expect(scripts).toHaveLength(1)
+    expect(scripts[0]).toContain('MutationObserver')
+    expect(received).toEqual([{ kind: 'added', target: 'DIV' }])
   })
 })
