@@ -89,8 +89,14 @@ amendments take precedence over the corresponding lines of `mvp.md`.
 20. **Mutation gate**: stryker `thresholds: { high: 100, low: 100, break: 100 }`
     (exit 1 below `break`). Vitest runner, `mutate: ['src/**/*.ts', '!src/cli.ts']`
     (`src/cli.ts` is the process entry; it only wires live Puppeteer and is
-    covered by `tests/cli.test.ts`, not by mutant-killing unit tests). Windows:
-    forward-slash globs only, gitignore `.stryker-tmp`, set
+    covered by `tests/cli.test.ts`, not by mutant-killing unit tests). Speed
+    follows https://stryker-mutator.io/blog/stryker4s-40-minutes-to-40-seconds/ :
+    in-process Vitest runner, `coverageAnalysis: 'perTest'`, no concurrency
+    cap (all cores), `ignoreStatic: true` (static mutants force a full reload
+    plus every test), and `incremental: true` writing
+    `reports/stryker-incremental.json`. CI restores/saves that file via
+    `actions/cache@v4` keyed by OS + SHA with an OS-wide restore-key.
+    Windows: forward-slash globs only, gitignore `.stryker-tmp`, set
     `timeoutMS: 30000`, and CI kills orphan Chrome between runs
     (`taskkill /F /IM chrome.exe`) — a stuck mutant spawns headless Chrome.
 21. **JUnit reporter is built into vitest 4** (`reporters: ['junit']`,

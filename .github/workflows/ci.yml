@@ -42,6 +42,14 @@ jobs:
       - name: Coverage (100% gate)
         run: npm run coverage
 
+      - name: Restore incremental mutation report
+        uses: actions/cache@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-incremental-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            stryker-incremental-${{ runner.os }}-
+
       - name: Mutation (100% gate + survivor registry)
         run: npm run ci:survivors
 

@@ -15,8 +15,14 @@ const config: StrykerConfig = {
   // as `stryker run stryker.config.ts` (see package.json "mutation").
   vitest: { configFile: 'vitest.stryker.config.ts' },
   mutate: ['src/**/*.ts', '!src/cli.ts'],
+  // perTest + no concurrency cap + ignoreStatic follow the
+  // 40-minutes-to-40-seconds methodology: only covering tests run,
+  // every core is used, and static mutants (full reload + all tests)
+  // are ignored. incremental reuses prior killed/survived results.
   coverageAnalysis: 'perTest',
-  concurrency: 4,
+  ignoreStatic: true,
+  incremental: true,
+  incrementalFile: 'reports/stryker-incremental.json',
   timeoutMS: 30000,
   reporters: ['html', 'json', 'clear-text', 'progress'],
   htmlReporter: { fileName: 'reports/mutation.html' },
