@@ -62,17 +62,36 @@ It's not a fork of `chrome-devtools-mcp`. It borrows that project's _proven patt
 ## Architecture
 
 ```mermaid
-flowchart LR
-    LLM[Client / LLM]
-    Server[MCP Server]
-    Handler[ToolHandler]
-    Page[ContextPage]
-    Browser[Puppeteer / CDP]
+flowchart TB
+    Client[MCP Client / LLM]
 
-    LLM <-->|tools/list · tools/call| Server
+    subgraph Protocol["MCP Protocol Layer"]
+        Server[McpServer<br/>tools/list · tools/call · server/discover]
+    end
+
+    subgraph Framework["Tool Framework"]
+        Handler[ToolHandler<br/>defineTool · gating · write mutex]
+    end
+
+    subgraph Core["Core Model"]
+        direction LR
+        Observe[observe<br/>snapshot + overlay]
+        Diff[Diff engine<br/>changes + rebinding]
+        Events[Event layer<br/>buffer + collector]
+        Actions[Action layer<br/>log + act-then-wait]
+    end
+
+    Browser[ContextPage<br/>over Puppeteer / CDP]
+
+    Client <-->|MCP| Server
     Server -->|registerTool| Handler
-    Handler <-->|narrow contract| Page
-    Page <-->|a11y · screenshot · CDP| Browser
+    Handler -->|read| Observe
+    Handler -->|write| Actions
+    Observe --> Diff
+    Observe --> Events
+    Actions --> Events
+    Observe --> Browser
+    Actions --> Browser
 ```
 
 The layers are thin and testable: the protocol layer bridges our tools onto MCP, the `ToolHandler` enforces gating, and the `ContextPage` hides Puppeteer behind a narrow contract so nothing touches the raw page.
