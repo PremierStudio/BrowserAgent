@@ -15,6 +15,13 @@ function makeContextPage(overrides: Partial<ContextPage> = {}): ContextPage {
     }),
     emulate: async () => undefined,
     getDialog: async () => null,
+    click: async () => undefined,
+    type: async () => undefined,
+    hover: async () => undefined,
+    scroll: async () => undefined,
+    select: async () => undefined,
+    press: async () => undefined,
+    navigate: async () => undefined,
     ...overrides,
   }
 }

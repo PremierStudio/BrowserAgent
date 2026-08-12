@@ -102,6 +102,7 @@ describe('EventCollector', () => {
     const collector = new EventCollector(source, buffer, () => 100)
     collector.start()
     source.emit('console', 'not-an-object')
+    source.emit('console', null)
     source.emit('response', 'not-an-object')
     source.emit('requestfailed', 'not-an-object')
     source.emit('framenavigated', 'not-an-object')

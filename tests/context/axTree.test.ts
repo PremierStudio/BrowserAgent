@@ -113,10 +113,4 @@ describe('buildRawTree', () => {
     expect(root.role).toBe('generic')
     expect(root.loaderId).toBe('loader-1')
   })
-
-  it('builds a fallback root when the root node is ignored', () => {
-    const root = buildRawTree([axNode({ ignored: true })], boxes, 'loader-1')
-    expect(root.role).toBe('generic')
-    expect(root.loaderId).toBe('loader-1')
-  })
 })

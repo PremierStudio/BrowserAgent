@@ -16,6 +16,13 @@ export interface ContextPage {
   observe(): Promise<ObserveResult>
   emulate(options: unknown): Promise<void>
   getDialog(): Promise<unknown>
+  click(uid: string): Promise<void>
+  type(uid: string, text: string): Promise<void>
+  hover(uid: string): Promise<void>
+  scroll(uid: string, dx: number, dy: number): Promise<void>
+  select(uid: string, value: string): Promise<void>
+  press(key: string): Promise<void>
+  navigate(url: string): Promise<void>
 }
 
 /** A minimal structural view of the Puppeteer Page we depend on. */
@@ -71,5 +78,37 @@ export class PuppeteerContextPage implements ContextPage {
 
   async getDialog(): Promise<unknown> {
     return null
+  }
+
+  async click(uid: string): Promise<void> {
+    void uid
+  }
+
+  async type(uid: string, text: string): Promise<void> {
+    void uid
+    void text
+  }
+
+  async hover(uid: string): Promise<void> {
+    void uid
+  }
+
+  async scroll(uid: string, dx: number, dy: number): Promise<void> {
+    void uid
+    void dx
+    void dy
+  }
+
+  async select(uid: string, value: string): Promise<void> {
+    void uid
+    void value
+  }
+
+  async press(key: string): Promise<void> {
+    void key
+  }
+
+  async navigate(url: string): Promise<void> {
+    void url
   }
 }

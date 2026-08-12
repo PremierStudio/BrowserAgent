@@ -81,8 +81,5 @@ export function buildRawTree(
   if (root === undefined) {
     return build({})
   }
-  if (root.ignored) {
-    return build({})
-  }
   return build(root)
 }

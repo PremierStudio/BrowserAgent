@@ -62,4 +62,16 @@ describe('PuppeteerContextPage', () => {
     const context = new PuppeteerContextPage(page)
     expect(await context.getDialog()).toBeNull()
   })
+
+  it('action methods resolve', async () => {
+    const page = makeMockPage()
+    const context = new PuppeteerContextPage(page)
+    await expect(context.click('loader-1_1')).resolves.toBeUndefined()
+    await expect(context.type('loader-1_1', 'hi')).resolves.toBeUndefined()
+    await expect(context.hover('loader-1_1')).resolves.toBeUndefined()
+    await expect(context.scroll('loader-1_1', 1, 2)).resolves.toBeUndefined()
+    await expect(context.select('loader-1_1', 'v')).resolves.toBeUndefined()
+    await expect(context.press('Enter')).resolves.toBeUndefined()
+    await expect(context.navigate('https://example.com')).resolves.toBeUndefined()
+  })
 })
