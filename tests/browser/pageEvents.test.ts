@@ -164,6 +164,31 @@ describe('adaptPageEvents', () => {
       page.emit('response', 'https://example.com')
       expect(received).toEqual([])
     })
+
+    it('does not throw when url() or status() throw (Puppeteer detached request)', () => {
+      const page = makePage()
+      const received = listen(adaptPageEvents(page), 'response')
+      expect(() => {
+        page.emit('response', {
+          url: () => {
+            throw new Error("Cannot read properties of undefined (reading '#request')")
+          },
+          status: () => 200,
+        })
+      }).not.toThrow()
+      expect(() => {
+        page.emit('response', {
+          url: () => 'https://example.com/ok',
+          status: () => {
+            throw new Error('status unavailable')
+          },
+        })
+      }).not.toThrow()
+      expect(received).toEqual([
+        { url: '', status: 200 },
+        { url: 'https://example.com/ok', status: 0 },
+      ])
+    })
   })
 
   describe('requestfailed', () => {

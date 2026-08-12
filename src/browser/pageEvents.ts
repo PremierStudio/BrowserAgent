@@ -23,9 +23,13 @@ function readString(record: Record<string, unknown>, key: string): string {
     return value
   }
   if (isThunk(value)) {
-    const result = value()
-    if (typeof result === 'string') {
-      return result
+    try {
+      const result = value()
+      if (typeof result === 'string') {
+        return result
+      }
+    } catch {
+      return ''
     }
   }
   return ''
@@ -37,9 +41,13 @@ function readNumber(record: Record<string, unknown>, key: string): number {
     return value
   }
   if (isThunk(value)) {
-    const result = value()
-    if (typeof result === 'number') {
-      return result
+    try {
+      const result = value()
+      if (typeof result === 'number') {
+        return result
+      }
+    } catch {
+      return 0
     }
   }
   return 0
@@ -73,9 +81,13 @@ function subscribeNormalized(
   normalize: (payload: unknown) => unknown | null,
 ): void {
   page.on(event, (payload) => {
-    const normalized = normalize(payload)
-    if (normalized !== null) {
-      handler(normalized)
+    try {
+      const normalized = normalize(payload)
+      if (normalized !== null) {
+        handler(normalized)
+      }
+    } catch {
+      // Live Puppeteer events must never crash the MCP stdio process.
     }
   })
 }
