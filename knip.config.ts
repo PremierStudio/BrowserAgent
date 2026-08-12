@@ -6,7 +6,7 @@ import type { KnipConfiguration } from 'knip'
 // then parses it and derives `@stryker-mutator/vitest-runner` from
 // `testRunner: 'vitest'` (instead of flagging it as an unused dependency).
 const config: KnipConfiguration = {
-  entry: ['scripts/*.ts', 'src/cli.ts'],
+  entry: ['scripts/*.ts', 'src/cli.ts', 'vitest.stryker.config.ts'],
   stryker: { config: ['stryker.config.ts'] },
 }
 

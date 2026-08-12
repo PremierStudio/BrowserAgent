@@ -11,6 +11,9 @@ type StrykerConfig = Omit<PartialStrykerOptions, 'fileLogLevel'> & {
 
 const config: StrykerConfig = {
   testRunner: 'vitest',
+  // Stryker 9 auto-detects only json/js/mjs/cjs; this file must be passed
+  // as `stryker run stryker.config.ts` (see package.json "mutation").
+  vitest: { configFile: 'vitest.stryker.config.ts' },
   mutate: ['src/**/*.ts'],
   coverageAnalysis: 'perTest',
   concurrency: 4,
