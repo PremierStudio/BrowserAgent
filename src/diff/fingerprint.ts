@@ -53,7 +53,7 @@ export function rebindUids(oldTree: SnapshotNode, newTree: SnapshotNode): Finger
     if (!newUids.has(node.uid)) {
       const fp = fingerprint(node)
       const newUid = newByFingerprint.get(fp)
-      if (newUid !== undefined && newUid !== node.uid) {
+      if (newUid !== undefined) {
         result[node.uid] = newUid
       }
     }

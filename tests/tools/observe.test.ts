@@ -25,6 +25,7 @@ describe('observeTool', () => {
     expect(observeTool.category).toBe(ToolCategory.Observe)
     expect(observeTool.readOnly).toBe(true)
     expect(observeTool.experimental).toBe(false)
+    expect(observeTool.description.length).toBeGreaterThan(0)
   })
 
   it('has a zod input schema', () => {
