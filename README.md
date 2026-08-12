@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A unified, event-driven, visually-rich <strong>MCP browser-automation server</strong> on Puppeteer — built so the semantic layer and the visual layer are the <em>same object</em>.
+  A unified, event-driven, visually-rich <strong>MCP browser-automation server</strong> on Puppeteer, built so the semantic layer and the visual layer are the <em>same object</em>.
 </p>
 
 <p align="center">
@@ -26,9 +26,9 @@
 
 ## ✨ Highlights
 
-- **One model, not two.** `observe` returns the a11y snapshot _and_ the pixel overlay in a single call — the model never reconciles text and images itself.
+- **One model, not two.** `observe` returns the a11y snapshot _and_ the pixel overlay in a single call, so the model never reconciles text and images itself.
 - **Diffs, not dumps.** The diff engine returns only what changed since the last observation, with fingerprint-based uid rebinding across navigation.
-- **Events, not polling.** Console, network, DOM, and navigation events are collected and pushed — the model doesn't re-read the page every turn.
+- **Events, not polling.** Console, network, DOM, and navigation events are collected and pushed, so the model doesn't re-read the page every turn.
 - **Strict TDD at 100/100.** Every module lands at 100% coverage _and_ 100% mutation score, enforced by CI.
 - **TypeScript-only, zero tolerance.** No `.js`/`.mjs`/`.cjs` anywhere; no `as`, `any`, `!`, or `@ts-ignore` in the codebase.
 
@@ -38,9 +38,9 @@
 
 ## The thesis
 
-Most browser integrations treat "read the page" and "act on the page" as separate worlds — one returns text, the other returns pixels. That split forces the model to re-read the page every turn and to guess at the relationship between what it _sees_ and what it can _click_.
+Most browser integrations treat "read the page" and "act on the page" as separate worlds, one returning text and the other returning pixels. That split forces the model to re-read the page every turn and to guess at the relationship between what it _sees_ and what it can _click_.
 
-BrowserAgent's core idea: **build one unified, event-driven, visually-rich model where the semantic layer and the visual layer are the same object** — a model that can both watch and explain.
+BrowserAgent's core idea: **build one unified, event-driven, visually-rich model where the semantic layer and the visual layer are the same object**, a model that can both watch and explain.
 
 ---
 
@@ -48,12 +48,12 @@ BrowserAgent's core idea: **build one unified, event-driven, visually-rich model
 
 ## Why another browser MCP server?
 
-It's not a fork of `chrome-devtools-mcp`. It borrows that project's _proven patterns_ — stable element uids keyed by `loaderId_backendNodeId`, a `ContextPage` abstraction that hides Puppeteer behind a narrow contract, an "act then wait for stable DOM/navigation" wrapper, and token-optimized formatters — and rebuilds them from scratch around a different product shape.
+It's not a fork of `chrome-devtools-mcp`. It borrows that project's _proven patterns_ (stable element uids keyed by `loaderId_backendNodeId`, a `ContextPage` abstraction that hides Puppeteer behind a narrow contract, an "act then wait for stable DOM/navigation" wrapper, and token-optimized formatters) and rebuilds them from scratch around a different product shape.
 
 - **Unified observe, not split snapshot/screenshot.** One call returns the a11y tree _with_ the pixel overlay.
 - **Diff, don't re-read.** The diff engine (with fingerprint-based uid rebinding) means the model doesn't pay to re-read the whole page every turn.
 - **Events, not polling.** The server pushes changes instead of the model polling.
-- **Fewer round trips over micro-optimization.** The browser and the LLM are the bottlenecks — performance comes from the diff engine and event-driven observation, not from shaving milliseconds.
+- **Fewer round trips over micro-optimization.** The browser and the LLM are the bottlenecks, so performance comes from the diff engine and event-driven observation rather than shaving milliseconds.
 
 ---
 
@@ -62,50 +62,34 @@ It's not a fork of `chrome-devtools-mcp`. It borrows that project's _proven patt
 ## Architecture
 
 ```mermaid
-flowchart TB
-    subgraph Protocol["MCP Protocol Layer"]
-        PL[tools/list · tools/call<br/>server/discover · Tool Annotations]
-        PL2[Tasks · MCP Apps · MRTR]
-    end
+flowchart LR
+    LLM[Client / LLM]
+    Server[MCP Server]
+    Handler[ToolHandler]
+    Page[ContextPage]
+    Browser[Puppeteer / CDP]
 
-    subgraph Framework["Tool Framework"]
-        TF[defineTool · ToolHandler · ToolMutex · Response]
-        TF2[category gating · experimental gating<br/>unknown-arg rejection · write serialization]
-    end
-
-    subgraph Core["Core Model"]
-        direction LR
-        CP[ContextPage<br/>getElementByUid · observe · emulate]
-        DE[Diff Engine<br/>diffSnapshots · fingerprint · DiffTracker]
-        EV[Event Layer<br/>EventBuffer · EventCollector · normalize]
-        AC[Action Layer<br/>ActionLog · StabilityWaiter · ActionRunner]
-    end
-
-    subgraph Browser["Puppeteer / CDP"]
-        CH[headless Chrome]
-    end
-
-    Protocol -->|registerTools → ToolCaller| Framework
-    Framework -->|narrow contract, no raw Puppeteer| Core
-    CP --> CH
-    DE --> CH
-    EV --> CH
-    AC --> CH
+    LLM <-->|tools/list · tools/call| Server
+    Server -->|registerTool| Handler
+    Handler <-->|narrow contract| Page
+    Page <-->|a11y · screenshot · CDP| Browser
 ```
+
+The layers are thin and testable: the protocol layer bridges our tools onto MCP, the `ToolHandler` enforces gating, and the `ContextPage` hides Puppeteer behind a narrow contract so nothing touches the raw page.
 
 The product surface, in dependency order:
 
-| #   | Piece                                                                                                       | Milestone |
-| --- | ----------------------------------------------------------------------------------------------------------- | --------- |
-| 1   | **`observe`** — a11y snapshot with `uid` + bounding box + zIndex, screenshot, `uid → box` overlay           | **M1**    |
-| 2   | **Diff engine** — changes since the last call, not the whole tree                                           | **M2**    |
-| 3   | **Event / subscription layer** — console, network, DOM, navigation                                          | **M4**    |
-| 4   | **Semantic action log** — `{action, uid, box, timestamp}` (the seed of replay)                              | **M3**    |
-| 5   | **Action primitives** — click, type, hover, scroll, select, press, navigate, with the act-then-wait wrapper | **M3**    |
-| 6   | **MCP protocol layer** — `tools/list`, `tools/call`, `server/discover`, Tool Annotations on the v2 SDK      | **M5**    |
-| 7   | **MCP Apps replay/annotation UI** — scrubbable, animated replay                                             | **M7**    |
-| 8   | **Tasks + MRTR** — `watch_until`, `run_flow`, human-in-the-loop gates                                       | **M5–M6** |
-| 9   | **Intent tools** — `verify` (pass/fail with evidence), `explain` (annotated visual + summary)               | **M6**    |
+| #   | Piece                                                                                                      | Milestone |
+| --- | ---------------------------------------------------------------------------------------------------------- | --------- |
+| 1   | **`observe`**: a11y snapshot with `uid` + bounding box + zIndex, screenshot, `uid → box` overlay           | **M1**    |
+| 2   | **Diff engine**: changes since the last call, not the whole tree                                           | **M2**    |
+| 3   | **Event / subscription layer**: console, network, DOM, navigation                                          | **M4**    |
+| 4   | **Semantic action log**: `{action, uid, box, timestamp}` (the seed of replay)                              | **M3**    |
+| 5   | **Action primitives**: click, type, hover, scroll, select, press, navigate, with the act-then-wait wrapper | **M3**    |
+| 6   | **MCP protocol layer**: `tools/list`, `tools/call`, `server/discover`, Tool Annotations on the v2 SDK      | **M5**    |
+| 7   | **MCP Apps replay/annotation UI**: scrubbable, animated replay                                             | **M7**    |
+| 8   | **Tasks + MRTR**: `watch_until`, `run_flow`, human-in-the-loop gates                                       | **M5-M6** |
+| 9   | **Intent tools**: `verify` (pass/fail with evidence), `explain` (annotated visual + summary)               | **M6**    |
 
 ---
 
@@ -115,11 +99,11 @@ The product surface, in dependency order:
 
 ### Requirements
 
-| Tool       | Version                                                            |
-| ---------- | ------------------------------------------------------------------ |
-| Node.js    | `>= 20.19`                                                         |
-| npm        | bundled with Node                                                  |
-| TypeScript | `^6.0.3` (TS 6, not the 7.x Go port — see `docs/decisions.md` #16) |
+| Tool       | Version                                                           |
+| ---------- | ----------------------------------------------------------------- |
+| Node.js    | `>= 20.19`                                                        |
+| npm        | bundled with Node                                                 |
+| TypeScript | `^6.0.3` (TS 6, not the 7.x Go port; see `docs/decisions.md` #16) |
 
 ### Install
 
@@ -177,11 +161,11 @@ typecheck → lint → format → knip → unit tests → coverage (100%) → mu
 ```
 
 - **100% coverage** (lines/branches/functions/statements) via Vitest + `@vitest/coverage-v8`.
-- **100% mutation score** via Stryker — coverage alone is a lie; mutation testing proves the tests actually catch real faults. The only escape from the mutation gate is a pre-approved, documented entry in `mutation-survivors.json` (currently empty).
-- **No dead code.** knip runs with zero findings — unused files, exports, and dependencies are removed, not ignored.
-- **TypeScript only, everywhere.** No `.js`/`.mjs`/`.cjs` — source, configs (`eslint.config.ts`, `stryker.config.ts`, `vitest.config.ts`), and scripts (emitted to `dist-scripts/` via `tsconfig.scripts.json`).
+- **100% mutation score** via Stryker. Coverage alone is a lie; mutation testing proves the tests actually catch real faults. The only escape from the mutation gate is a pre-approved, documented entry in `mutation-survivors.json` (currently empty).
+- **No dead code.** knip runs with zero findings. Unused files, exports, and dependencies are removed, not ignored.
+- **TypeScript only, everywhere.** No `.js`/`.mjs`/`.cjs` anywhere, including source, configs (`eslint.config.ts`, `stryker.config.ts`, `vitest.config.ts`), and scripts (emitted to `dist-scripts/` via `tsconfig.scripts.json`).
 - **No banned constructs.** `as` casts, `any`, `!` non-null assertions, `@ts-ignore`/`@ts-nocheck`/`@ts-expect-error`, and `.forEach` are all lint errors.
-- **Deterministic tests.** Clocks and timers are injected — no sleeps, no flaky timing.
+- **Deterministic tests.** Clocks and timers are injected, so there are no sleeps and no flaky timing.
 
 The full engineering spec lives in [`docs/mvp.md`](docs/mvp.md); every deviation and protocol decision is recorded in [`docs/decisions.md`](docs/decisions.md).
 
@@ -240,10 +224,10 @@ gantt
 
 This repo follows the rules in [`AGENTS.md`](AGENTS.md) (binding for every agent) and the spec in [`docs/mvp.md`](docs/mvp.md). The short version:
 
-- **Strict TDD** — failing test first (RED), confirm it fails for the right reason, then implement (GREEN), then refactor.
-- **The 100/100 gate** — no module merges unless it's at 100% coverage _and_ 100% mutation score, with typecheck/lint/format/knip clean.
-- **No survivor silencing** — a surviving mutant is fixed by strengthening the test, never by weakening the code or adding ignore comments.
-- **TypeScript only** — no `.js`/`.mjs`/`.cjs`, including configs and scripts.
+- **Strict TDD.** Write the failing test first (RED), confirm it fails for the right reason, then implement (GREEN), then refactor.
+- **The 100/100 gate.** No module merges unless it's at 100% coverage _and_ 100% mutation score, with typecheck/lint/format/knip clean.
+- **No survivor silencing.** A surviving mutant is fixed by strengthening the test, never by weakening the code or adding ignore comments.
+- **TypeScript only.** No `.js`/`.mjs`/`.cjs`, including configs and scripts.
 
 ---
 
