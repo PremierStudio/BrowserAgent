@@ -1,56 +1,113 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-label="BrowserEngine: turn one agent walkthrough into a CI test that runs with no AI">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-label="BrowserEngine: an agent explores the product, CI replays the path with no AI, and when a step breaks the agent files a bug or heals the flow">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0b1120"/>
-      <stop offset="55%" stop-color="#0f1b3d"/>
-      <stop offset="100%" stop-color="#111827"/>
+      <stop offset="0%" stop-color="#070b14"/>
+      <stop offset="50%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#0a1628"/>
     </linearGradient>
     <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="#f8fafc"/>
-      <stop offset="100%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
     </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="explore" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#22d3ee"/>
-      <stop offset="100%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.5" cy="0.4" r="0.6">
-      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.22"/>
-      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
-    </radialGradient>
+    <linearGradient id="keep" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <linearGradient id="heal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0b1220"/>
+    </linearGradient>
+    <filter id="soft" x="-8%" y="-8%" width="116%" height="116%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#020617" flood-opacity="0.45"/>
+    </filter>
   </defs>
 
-  <rect width="1200" height="360" fill="url(#bg)"/>
-  <rect width="1200" height="360" fill="url(#glow)"/>
+  <rect width="1200" height="420" fill="url(#bg)"/>
+  <circle cx="180" cy="40" r="220" fill="#22d3ee" fill-opacity="0.06"/>
+  <circle cx="1040" cy="380" r="240" fill="#f59e0b" fill-opacity="0.05"/>
 
-  <!-- subtle grid -->
-  <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
-    <line x1="0" y1="90" x2="1200" y2="90"/>
-    <line x1="0" y1="180" x2="1200" y2="180"/>
-    <line x1="0" y1="270" x2="1200" y2="270"/>
-    <line x1="300" y1="0" x2="300" y2="360"/>
-    <line x1="600" y1="0" x2="600" y2="360"/>
-    <line x1="900" y1="0" x2="900" y2="360"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="48" y="52" font-size="28" font-weight="700" fill="url(#word)" letter-spacing="-0.4">BrowserEngine</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="48" y="82" font-size="16" fill="#94a3b8">Explore with an agent. Replay with no model. Heal the path when it breaks.</text>
+
+  <!-- EXPLORE -->
+  <g filter="url(#soft)">
+    <rect x="48" y="118" width="340" height="258" rx="18" fill="url(#card)" stroke="#1e293b"/>
+    <rect x="48" y="118" width="6" height="258" rx="3" fill="url(#explore)"/>
   </g>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="72" y="150" font-size="12" font-weight="700" fill="#22d3ee" letter-spacing="2.2">1  EXPLORE</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="72" y="176" font-size="18" font-weight="600" fill="#e2e8f0">Agent walks the product</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="72" y="198" font-size="13" fill="#94a3b8">Clicks the names a person sees</text>
 
-  <!-- browser window motif (top-left) -->
-  <g transform="translate(70, 48)">
-    <rect x="0" y="0" width="170" height="120" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1.5"/>
-    <rect x="0" y="0" width="170" height="28" rx="12" fill="#1e293b"/>
-    <circle cx="17" cy="14" r="4.5" fill="#ef4444"/>
-    <circle cx="34" cy="14" r="4.5" fill="#f59e0b"/>
-    <circle cx="51" cy="14" r="4.5" fill="#22c55e"/>
-    <rect x="66" y="7" width="90" height="14" rx="7" fill="#334155"/>
-    <rect x="18" y="46" width="134" height="9" rx="4.5" fill="#334155"/>
-    <rect x="18" y="66" width="108" height="9" rx="4.5" fill="#263449"/>
-    <rect x="18" y="86" width="120" height="9" rx="4.5" fill="#263449"/>
+  <rect x="72" y="216" width="292" height="136" rx="12" fill="#020617" stroke="#1e293b"/>
+  <rect x="72" y="216" width="292" height="28" rx="12" fill="#111827"/>
+  <circle cx="90" cy="230" r="4" fill="#ef4444"/>
+  <circle cx="104" cy="230" r="4" fill="#f59e0b"/>
+  <circle cx="118" cy="230" r="4" fill="#22c55e"/>
+  <rect x="136" y="223" width="210" height="14" rx="7" fill="#1e293b"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="146" y="234" font-size="10" fill="#64748b">checkout.example</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="88" y="268" font-size="12" fill="#64748b">Username</text>
+  <rect x="88" y="274" width="200" height="18" rx="5" fill="#0f172a" stroke="#334155"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="96" y="287" font-size="11" fill="#94a3b8">tomsmith</text>
+  <rect x="88" y="302" width="78" height="26" rx="7" fill="url(#explore)"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="104" y="319" font-size="12" font-weight="700" fill="#082f49">Login</text>
+  <path d="M178 328 l10 8 4-14" fill="none" stroke="#f8fafc" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- KEEP -->
+  <g filter="url(#soft)">
+    <rect x="430" y="118" width="340" height="258" rx="18" fill="url(#card)" stroke="#1e293b"/>
+    <rect x="430" y="118" width="6" height="258" rx="3" fill="url(#keep)"/>
   </g>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="454" y="150" font-size="12" font-weight="700" fill="#93c5fd" letter-spacing="2.2">2  KEEP</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="454" y="176" font-size="18" font-weight="600" fill="#e2e8f0">Save the named path</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="454" y="198" font-size="13" fill="#94a3b8">CI replays it. Zero tokens.</text>
 
-  <!-- wordmark: single run, no overlap -->
-  <text x="280" y="196" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="78" font-weight="700" fill="url(#word)" letter-spacing="-1">BrowserEngine</text>
+  <rect x="454" y="216" width="292" height="136" rx="12" fill="#020617" stroke="#1e293b"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="470" y="244" font-size="13" fill="#64748b">{</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="486" y="266" font-size="13" fill="#93c5fd">"action"</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="552" y="266" font-size="13" fill="#64748b">:</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="564" y="266" font-size="13" fill="#86efac">"click"</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="486" y="288" font-size="13" fill="#93c5fd">"name"</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="546" y="288" font-size="13" fill="#64748b">:</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="558" y="288" font-size="13" fill="#fde68a">"Login"</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="486" y="310" font-size="13" fill="#93c5fd">"expectText"</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="578" y="310" font-size="13" fill="#64748b">:</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="590" y="310" font-size="13" fill="#fde68a">"Logout"</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="470" y="332" font-size="13" fill="#64748b">}</text>
+  <rect x="668" y="228" width="62" height="22" rx="11" fill="#1e3a5f"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="680" y="243" font-size="11" font-weight="700" fill="#93c5fd">no AI</text>
 
-  <!-- tagline -->
-  <text x="284" y="242" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23" fill="#94a3b8" font-weight="400">Walk once. Replay in CI with no AI.</text>
+  <!-- HEAL -->
+  <g filter="url(#soft)">
+    <rect x="812" y="118" width="340" height="258" rx="18" fill="url(#card)" stroke="#1e293b"/>
+    <rect x="812" y="118" width="6" height="258" rx="3" fill="url(#heal)"/>
+  </g>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="150" font-size="12" font-weight="700" fill="#fbbf24" letter-spacing="2.2">3  HEAL</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="176" font-size="18" font-weight="600" fill="#e2e8f0">When a step breaks</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="198" font-size="13" fill="#94a3b8">Agent files a bug or updates the flow</text>
 
-  <!-- accent underline -->
-  <rect x="284" y="266" width="640" height="4" rx="2" fill="url(#accent)"/>
+  <rect x="836" y="216" width="292" height="56" rx="10" fill="#1c1008" stroke="#7c2d12"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="240" font-size="12" font-weight="600" fill="#fdba74">step 2 click Login</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="258" font-size="12" fill="#fed7aa">two matches. not a guess.</text>
+
+  <rect x="836" y="284" width="138" height="52" rx="10" fill="#0f172a" stroke="#334155"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="306" font-size="11" fill="#94a3b8">product broke</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="324" font-size="13" font-weight="600" fill="#e2e8f0">file a ticket</text>
+
+  <rect x="990" y="284" width="138" height="52" rx="10" fill="#0f172a" stroke="#334155"/>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="1004" y="306" font-size="11" fill="#94a3b8">button renamed</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="1004" y="324" font-size="13" font-weight="600" fill="#fde68a">heal the step</text>
+
+  <!-- arrows between cards -->
+  <path d="M398 248 h20" stroke="#334155" stroke-width="2"/>
+  <path d="M414 242 l8 6 -8 6" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M780 248 h20" stroke="#334155" stroke-width="2"/>
+  <path d="M796 242 l8 6 -8 6" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

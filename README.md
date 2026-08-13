@@ -3,7 +3,8 @@
 </p>
 
 <p align="center">
-  Turn one agent walkthrough into a CI test that runs with no AI.
+  An agent explores the product. CI replays the path with no AI.
+  When a step breaks, the agent files a bug or heals the flow.
 </p>
 
 <p align="center">
