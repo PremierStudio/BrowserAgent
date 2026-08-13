@@ -1,4 +1,4 @@
-# BrowserAgent — agent rules
+# BrowserEngine — agent rules
 
 These rules are binding for every agent working in this repository. They
 supersede generic habits; when in doubt, follow the letter here.

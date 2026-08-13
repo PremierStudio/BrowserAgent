@@ -182,13 +182,13 @@ describe('buildCliMain', () => {
       throw new Error('expected factory server')
     }
     const client = await connectClient(server)
-    expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    expect(client.init.serverInfo).toEqual({ name: 'browser-engine', version: '0.0.1' })
     const names = listedToolNames(await client.request(2, 'tools/list', {}))
     expect(names).toEqual(DEFAULT_TOOL_NAMES)
     expect(listedResources(await client.request(3, 'resources/list', {}))).toEqual([
       { uri: 'browser://events', name: 'browser-events', mimeType: 'application/json' },
       {
-        uri: 'ui://browser-agent/replay',
+        uri: 'ui://browser-engine/replay',
         name: 'browser-replay',
         mimeType: 'text/html;profile=mcp-app',
       },
@@ -271,12 +271,12 @@ describe('createDefaultServer', () => {
     expect(server.toolInputSchemaJson('run_flow')).toBeDefined()
     expect(server.toolInputSchemaJson('compile_flow')).toBeDefined()
     const client = await connectClient(server)
-    expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    expect(client.init.serverInfo).toEqual({ name: 'browser-engine', version: '0.0.1' })
     expect(listedToolNames(await client.request(2, 'tools/list', {}))).toEqual(DEFAULT_TOOL_NAMES)
     expect(listedResources(await client.request(3, 'resources/list', {}))).toEqual([
       { uri: 'browser://events', name: 'browser-events', mimeType: 'application/json' },
       {
-        uri: 'ui://browser-agent/replay',
+        uri: 'ui://browser-engine/replay',
         name: 'browser-replay',
         mimeType: 'text/html;profile=mcp-app',
       },
@@ -325,6 +325,6 @@ describe('buildHttpHandler', () => {
     )
     expect(response.status).toBe(200)
     const body = await response.text()
-    expect(serverInfoFromSse(body)).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    expect(serverInfoFromSse(body)).toEqual({ name: 'browser-engine', version: '0.0.1' })
   })
 })

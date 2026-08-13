@@ -99,7 +99,7 @@ function listedResources(message: Record<string, unknown>): unknown[] {
 
 describe('createServer', () => {
   it('returns an McpServer with implementation info', async () => {
-    const server = createServer({ name: 'browser-agent', version: '0.0.1' })
+    const server = createServer({ name: 'browser-engine', version: '0.0.1' })
     expect(server).toBeInstanceOf(McpServer)
     const client = await connectClient(server)
     const confirmMessage = await client.request(2, 'tools/call', {
@@ -122,7 +122,7 @@ describe('createServer', () => {
       inputSchema: z.object({ value: z.string() }),
       handler: async () => 'pong',
     }
-    const server = createServer({ name: 'browser-agent', version: '0.0.1' }, { tools: [tool] })
+    const server = createServer({ name: 'browser-engine', version: '0.0.1' }, { tools: [tool] })
     expect(server).toBeInstanceOf(McpServer)
     const jsonSchema = server.toolInputSchemaJson('ping')
     expect(jsonSchema).toBeDefined()
@@ -145,7 +145,7 @@ describe('createServer', () => {
   it('registers the event resource when an event buffer is provided', async () => {
     const buffer = new EventBuffer(10)
     buffer.push({ type: 'console', timestamp: 1, level: 'log', text: 'hello' })
-    const server = createServer({ name: 'browser-agent', version: '0.0.1' }, { events: buffer })
+    const server = createServer({ name: 'browser-engine', version: '0.0.1' }, { events: buffer })
     expect(server).toBeInstanceOf(McpServer)
     expect(server.toolInputSchemaJson('nope')).toBeUndefined()
     const client = await connectClient(server)
@@ -173,7 +173,7 @@ describe('createServer', () => {
       inputSchema: z.object({ value: z.string() }),
       handler: async () => 'pong',
     }
-    const server = createServer({ name: 'browser-agent', version: '0.0.1' }, { tools: [tool] })
+    const server = createServer({ name: 'browser-engine', version: '0.0.1' }, { tools: [tool] })
     const client = await connectClient(server)
     await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } })
     const listed = resultOf(
@@ -186,7 +186,7 @@ describe('createServer', () => {
   })
 
   it('always registers the confirm_action tool', () => {
-    const server = createServer({ name: 'browser-agent', version: '0.0.1' })
+    const server = createServer({ name: 'browser-engine', version: '0.0.1' })
     const schema = server.toolInputSchemaJson('confirm_action')
     expect(schema).toBeDefined()
     expect(schema).toMatchObject({
@@ -203,7 +203,7 @@ describe('createServer', () => {
     events.push({ type: 'console', timestamp: 1, level: 'log', text: 'hello' })
     const actions = new ActionLog(10)
     const server = createServer(
-      { name: 'browser-agent', version: '0.0.1' },
+      { name: 'browser-engine', version: '0.0.1' },
       { tools: buildTools(), page, events, actions },
     )
     expect(server).toBeInstanceOf(McpServer)
@@ -224,23 +224,23 @@ describe('createServer', () => {
   it('registers the replay resource when an action log is provided', async () => {
     const actions = new ActionLog(10)
     actions.record({ action: 'click', uid: 'btn-1', timestamp: 1 })
-    const server = createServer({ name: 'browser-agent', version: '0.0.1' }, { actions })
+    const server = createServer({ name: 'browser-engine', version: '0.0.1' }, { actions })
     expect(server).toBeInstanceOf(McpServer)
     const client = await connectClient(server)
     expect(listedResources(await client.request(2, 'resources/list', {}))).toEqual([
       {
-        uri: 'ui://browser-agent/replay',
+        uri: 'ui://browser-engine/replay',
         name: 'browser-replay',
         mimeType: 'text/html;profile=mcp-app',
       },
     ])
     const read = resultOf(
-      await client.request(3, 'resources/read', { uri: 'ui://browser-agent/replay' }),
+      await client.request(3, 'resources/read', { uri: 'ui://browser-engine/replay' }),
     )
     expect(read.contents).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          uri: 'ui://browser-agent/replay',
+          uri: 'ui://browser-engine/replay',
           mimeType: 'text/html;profile=mcp-app',
         }),
       ]),
@@ -253,7 +253,7 @@ describe('createServer', () => {
     const runner = new TaskRunner(store)
     store.create('run-flow')
     const server = createServer(
-      { name: 'browser-agent', version: '0.0.1' },
+      { name: 'browser-engine', version: '0.0.1' },
       { tasks: { store, runner } },
     )
     expect(server.toolInputSchemaJson('get_task')).toMatchObject({
@@ -283,7 +283,7 @@ describe('createServer', () => {
     const events = new EventBuffer(10)
     const actions = new ActionLog(10)
     const server = createServer(
-      { name: 'browser-agent', version: '0.0.1' },
+      { name: 'browser-engine', version: '0.0.1' },
       { tools: buildTools(), page: fakePage(), events, actions, tasks: { store, runner } },
     )
     expect(server.toolInputSchemaJson('observe')).toBeDefined()
@@ -295,7 +295,7 @@ describe('createServer', () => {
     expect(resources).toEqual([
       { uri: 'browser://events', name: 'browser-events', mimeType: 'application/json' },
       {
-        uri: 'ui://browser-agent/replay',
+        uri: 'ui://browser-engine/replay',
         name: 'browser-replay',
         mimeType: 'text/html;profile=mcp-app',
       },
@@ -305,7 +305,7 @@ describe('createServer', () => {
 
   it('leaves observe unusable when no page is wired', async () => {
     const server = createServer(
-      { name: 'browser-agent', version: '0.0.1' },
+      { name: 'browser-engine', version: '0.0.1' },
       { tools: buildTools() },
     )
     const client = await connectClient(server)

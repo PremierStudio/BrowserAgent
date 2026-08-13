@@ -13,19 +13,19 @@ import {
 } from '../../src/browser/launchOptions.js'
 
 describe('headedFromEnv', () => {
-  it('is headed only when BROWSER_AGENT_HEADED is 1', () => {
-    expect(headedFromEnv({ BROWSER_AGENT_HEADED: '1' })).toBe(true)
-    expect(headedFromEnv({ BROWSER_AGENT_HEADED: '0' })).toBe(false)
-    expect(headedFromEnv({ BROWSER_AGENT_HEADED: 'true' })).toBe(false)
+  it('is headed only when BROWSER_ENGINE_HEADED is 1', () => {
+    expect(headedFromEnv({ BROWSER_ENGINE_HEADED: '1' })).toBe(true)
+    expect(headedFromEnv({ BROWSER_ENGINE_HEADED: '0' })).toBe(false)
+    expect(headedFromEnv({ BROWSER_ENGINE_HEADED: 'true' })).toBe(false)
     expect(headedFromEnv({})).toBe(false)
   })
 })
 
 describe('headedRequested', () => {
-  it('is headed unless BROWSER_AGENT_HEADED is 0', () => {
-    expect(headedRequested({ BROWSER_AGENT_HEADED: '1' }, [])).toBe(true)
-    expect(headedRequested({ BROWSER_AGENT_HEADED: '0' }, [])).toBe(false)
-    expect(headedRequested({ BROWSER_AGENT_HEADED: '0' }, ['--headed'])).toBe(true)
+  it('is headed unless BROWSER_ENGINE_HEADED is 0', () => {
+    expect(headedRequested({ BROWSER_ENGINE_HEADED: '1' }, [])).toBe(true)
+    expect(headedRequested({ BROWSER_ENGINE_HEADED: '0' }, [])).toBe(false)
+    expect(headedRequested({ BROWSER_ENGINE_HEADED: '0' }, ['--headed'])).toBe(true)
     expect(headedRequested({}, ['node', 'cli.js', '--headed'])).toBe(true)
     expect(headedRequested({}, ['node', 'cli.js'])).toBe(true)
   })
@@ -80,9 +80,9 @@ describe('parseWorkAreaCsv', () => {
 })
 
 describe('resolveWorkArea', () => {
-  it('prefers BROWSER_AGENT_WORK_AREA over a probe', () => {
+  it('prefers BROWSER_ENGINE_WORK_AREA over a probe', () => {
     expect(
-      resolveWorkArea({ BROWSER_AGENT_WORK_AREA: '10,20,2000,1000' }, '0,40,2560,1366'),
+      resolveWorkArea({ BROWSER_ENGINE_WORK_AREA: '10,20,2000,1000' }, '0,40,2560,1366'),
     ).toEqual({ x: 10, y: 20, width: 2000, height: 1000 })
   })
 
@@ -93,7 +93,7 @@ describe('resolveWorkArea', () => {
       width: 2560,
       height: 1366,
     })
-    expect(resolveWorkArea({ BROWSER_AGENT_WORK_AREA: 'nope' }, '0,40,2560,1366')).toEqual({
+    expect(resolveWorkArea({ BROWSER_ENGINE_WORK_AREA: 'nope' }, '0,40,2560,1366')).toEqual({
       x: 0,
       y: 40,
       width: 2560,
@@ -103,7 +103,7 @@ describe('resolveWorkArea', () => {
 
   it('falls back when neither env nor probe is usable', () => {
     expect(resolveWorkArea({}, undefined)).toEqual(FALLBACK_WORK_AREA)
-    expect(resolveWorkArea({ BROWSER_AGENT_WORK_AREA: '' }, 'bad')).toEqual(FALLBACK_WORK_AREA)
+    expect(resolveWorkArea({ BROWSER_ENGINE_WORK_AREA: '' }, 'bad')).toEqual(FALLBACK_WORK_AREA)
   })
 })
 

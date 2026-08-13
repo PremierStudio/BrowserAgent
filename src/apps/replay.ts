@@ -135,7 +135,7 @@ export function renderReplay(entries: ActionEntry[], annotations: ReplayAnnotati
 <head>
 <meta charset="utf-8"/>
 <meta name="mime" content="${MIME}"/>
-<title>BrowserAgent replay</title>
+<title>BrowserEngine replay</title>
 <style>
   :root { color-scheme: dark; font-family: ui-sans-serif, system-ui, sans-serif; }
   body { margin: 0; background: #0b1020; color: #e8eefc; }

@@ -6,7 +6,7 @@ import type { ResourceContent } from './eventResource.js'
 /** The MCP Apps replay resource config (decision #5). */
 export const REPLAY_RESOURCE_CONFIG = { mimeType: 'text/html;profile=mcp-app' } as const
 
-const DEFAULT_URI = 'ui://browser-agent/replay'
+const DEFAULT_URI = 'ui://browser-engine/replay'
 
 /** Serializes the action log into a ui:// HTML resource. */
 export function toReplayContents(log: ActionLog, uri: string = DEFAULT_URI): ResourceContent[] {

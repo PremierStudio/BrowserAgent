@@ -76,7 +76,7 @@ export function createServer(
     createEventResource(server, wiring.events, 'browser://events')
   }
   if (wiring.actions !== undefined) {
-    createReplayResource(server, wiring.actions, 'ui://browser-agent/replay')
+    createReplayResource(server, wiring.actions, 'ui://browser-engine/replay')
   }
   return server
 }

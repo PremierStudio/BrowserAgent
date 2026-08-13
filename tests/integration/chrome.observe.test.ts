@@ -1,5 +1,5 @@
-// Enable with BROWSER_AGENT_INTEGRATION=1
-// Windows PowerShell: $env:BROWSER_AGENT_INTEGRATION=1
+// Enable with BROWSER_ENGINE_INTEGRATION=1
+// Windows PowerShell: $env:BROWSER_ENGINE_INTEGRATION=1
 // then: npx vitest run tests/integration
 import type { Browser } from 'puppeteer'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -8,7 +8,7 @@ import { PuppeteerContextPage } from '../../src/context/ContextPage.js'
 import { startLocalHtmlServer } from '../../src/testing/localHtmlServer.js'
 import { firstClickableUid, findSnapshotNode, OBSERVE_BUTTON_HTML } from './helpers.js'
 
-const enabled = process.env.BROWSER_AGENT_INTEGRATION === '1'
+const enabled = process.env.BROWSER_ENGINE_INTEGRATION === '1'
 
 describe.skipIf(!enabled)('chrome observe', () => {
   let server: Awaited<ReturnType<typeof startLocalHtmlServer>> | undefined

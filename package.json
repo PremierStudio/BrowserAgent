@@ -1,5 +1,5 @@
 {
-  "name": "browser-agent",
+  "name": "browser-engine",
   "version": "0.0.1",
   "private": true,
   "description": "Turn one agent walkthrough into a CI test that runs with no AI.",

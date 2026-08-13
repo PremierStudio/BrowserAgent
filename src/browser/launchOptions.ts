@@ -19,12 +19,12 @@ export type WorkArea = {
 
 /** Headed Chrome is opt-in. Anything other than "1" stays headless. */
 export function headedFromEnv(env: Record<string, string | undefined>): boolean {
-  return env.BROWSER_AGENT_HEADED === '1'
+  return env.BROWSER_ENGINE_HEADED === '1'
 }
 
 /**
- * Launch decision. `--headed` or BROWSER_AGENT_HEADED=1 force a window.
- * BROWSER_AGENT_HEADED=0 forces headless. Unset defaults to headed so an MCP
+ * Launch decision. `--headed` or BROWSER_ENGINE_HEADED=1 force a window.
+ * BROWSER_ENGINE_HEADED=0 forces headless. Unset defaults to headed so an MCP
  * host that drops the env map still opens a visible Chrome.
  */
 export function headedRequested(
@@ -34,7 +34,7 @@ export function headedRequested(
   if (argv.includes('--headed')) {
     return true
   }
-  return env.BROWSER_AGENT_HEADED !== '0'
+  return env.BROWSER_ENGINE_HEADED !== '0'
 }
 
 /** Left half of the work area: full height, origin unchanged. */
@@ -75,7 +75,7 @@ export function parseWorkAreaCsv(raw: string | undefined): WorkArea | undefined 
 }
 
 /**
- * Env `BROWSER_AGENT_WORK_AREA` wins, then a host probe (Windows WorkingArea
+ * Env `BROWSER_ENGINE_WORK_AREA` wins, then a host probe (Windows WorkingArea
  * csv), then FALLBACK_WORK_AREA.
  */
 export function resolveWorkArea(
@@ -83,7 +83,7 @@ export function resolveWorkArea(
   probed: string | undefined,
 ): WorkArea {
   return (
-    parseWorkAreaCsv(env.BROWSER_AGENT_WORK_AREA) ?? parseWorkAreaCsv(probed) ?? FALLBACK_WORK_AREA
+    parseWorkAreaCsv(env.BROWSER_ENGINE_WORK_AREA) ?? parseWorkAreaCsv(probed) ?? FALLBACK_WORK_AREA
   )
 }
 

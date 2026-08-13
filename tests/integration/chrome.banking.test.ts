@@ -1,4 +1,4 @@
-// Enable with BROWSER_AGENT_SHOWCASE=1 (headed, public XYZ Bank)
+// Enable with BROWSER_ENGINE_SHOWCASE=1 (headed, public XYZ Bank)
 import type { Browser } from 'puppeteer'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { toPageLikeFromUnknown } from '../../src/browser/adaptPage.js'
@@ -9,7 +9,7 @@ import { BANKING_STEPS } from '../../src/intent/bankingFlow.js'
 import { DEFAULT_EXPECT_TIMEOUT_MS, HUMAN_PACE_MS, runFlow } from '../../src/intent/runFlow.js'
 import { defaultClock, defaultSleep } from '../../src/intent/watchUntil.js'
 
-const enabled = process.env.BROWSER_AGENT_SHOWCASE === '1'
+const enabled = process.env.BROWSER_ENGINE_SHOWCASE === '1'
 
 describe.skipIf(!enabled)('chrome banking', () => {
   let browser: Browser | undefined
@@ -42,7 +42,7 @@ describe.skipIf(!enabled)('chrome banking', () => {
     )
     const context = new PuppeteerContextPage(toPageLikeFromUnknown(raw), {
       sleep: defaultSleep,
-      typeCharMs: typeCharMs({ BROWSER_AGENT_HEADED: '1' }),
+      typeCharMs: typeCharMs({ BROWSER_ENGINE_HEADED: '1' }),
     })
     const result = await runFlow(context, [...BANKING_STEPS], {
       paceMs: HUMAN_PACE_MS,

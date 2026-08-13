@@ -25,14 +25,14 @@ export type RunFlowOptions = {
 
 /**
  * Visible window: watchable pace. Headless is instant.
- * `BROWSER_AGENT_PACE_MS` overrides (including 0).
+ * `BROWSER_ENGINE_PACE_MS` overrides (including 0).
  */
 export function flowPaceMs(env: Record<string, string | undefined>): number {
-  const parsed = Number(env.BROWSER_AGENT_PACE_MS)
+  const parsed = Number(env.BROWSER_ENGINE_PACE_MS)
   if (Number.isFinite(parsed) && parsed >= 0) {
     return parsed
   }
-  if (env.BROWSER_AGENT_HEADED === '0') {
+  if (env.BROWSER_ENGINE_HEADED === '0') {
     return 0
   }
   return HUMAN_PACE_MS
@@ -54,14 +54,14 @@ export function runFlowToolOptions(
 
 /**
  * Visible window: wait for expects. Headless is one shot.
- * `BROWSER_AGENT_EXPECT_MS` overrides (including 0).
+ * `BROWSER_ENGINE_EXPECT_MS` overrides (including 0).
  */
 export function flowExpectTimeoutMs(env: Record<string, string | undefined>): number {
-  const parsed = Number(env.BROWSER_AGENT_EXPECT_MS)
+  const parsed = Number(env.BROWSER_ENGINE_EXPECT_MS)
   if (Number.isFinite(parsed) && parsed >= 0) {
     return parsed
   }
-  if (env.BROWSER_AGENT_HEADED === '0') {
+  if (env.BROWSER_ENGINE_HEADED === '0') {
     return 0
   }
   return DEFAULT_EXPECT_TIMEOUT_MS

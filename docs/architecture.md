@@ -8,7 +8,7 @@ flowchart TB
     Cli[CLI compile / run]
     Ci[CI]
 
-    subgraph Engine["BrowserAgent engine"]
+    subgraph Engine["BrowserEngine engine"]
         Observe[observe<br/>snapshot + overlay + outline]
         Bind[name / role / near]
         Flow[run_flow · compile_flow · flow file]
@@ -36,7 +36,7 @@ flowchart TB
 
 Most browser stacks split "read the page" from "act on the page." One world is text, the other is pixels. The model re-reads every turn and guesses which box is which control.
 
-BrowserAgent builds one object: names, roles, pixels, and events together. An agent can watch, act, wait, verify, and explain. After a path is named and saved, the same engine replays it with no model.
+BrowserEngine builds one object: names, roles, pixels, and events together. An agent can watch, act, wait, verify, and explain. After a path is named and saved, the same engine replays it with no model.
 
 It borrows CDP patterns from `chrome-devtools-mcp` (stable uids, `ContextPage`, act-then-wait) and rebuilds them around named intent.
 
@@ -65,7 +65,7 @@ flowchart TB
     end
 
     subgraph Replay["Replay"]
-        U[ui://browser-agent/replay]
+        U[ui://browser-engine/replay]
         T[get_task list_tasks cancel_task wait_task]
     end
 
@@ -95,7 +95,7 @@ flowchart TB
 | 6   | **Saved flows**: versioned JSON, `compile` / `run` with no MCP             | **M6+**   |
 | 7   | **MCP**: stdio and Streamable HTTP, `server/discover`, annotations         | **M5**    |
 | 8   | **Desk**: `browser_status`, open/close/reap, tabs                          | **M5+**   |
-| 9   | **MCP Apps replay**: `ui://browser-agent/replay`                           | **M7**    |
+| 9   | **MCP Apps replay**: `ui://browser-engine/replay`                          | **M7**    |
 
 ## What lives elsewhere
 

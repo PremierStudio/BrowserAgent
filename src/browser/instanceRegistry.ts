@@ -9,7 +9,7 @@ export type BrowserTab = {
 /** Lifecycle of a registered MCP Chrome. */
 export type InstanceStatus = 'running' | 'closed' | 'orphaned' | 'chrome-dead'
 
-/** One BrowserAgent MCP process and the Chrome it last owned. */
+/** One BrowserEngine MCP process and the Chrome it last owned. */
 export type InstanceRecord = {
   readonly id: string
   readonly mcpPid: number

@@ -41,23 +41,23 @@ describe('parseCliCommand', () => {
   it('refuses a missing path or leftover args', () => {
     expect(parseCliCommand(['node', 'cli.js', 'run'])).toEqual({
       kind: 'usage',
-      error: 'usage: browser-agent run <file.json> | compile <file.json> | --http',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
     })
     expect(parseCliCommand(['node', 'cli.js', 'compile'])).toEqual({
       kind: 'usage',
-      error: 'usage: browser-agent run <file.json> | compile <file.json> | --http',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
     })
     expect(parseCliCommand(['node', 'cli.js', 'run', 'a.json', 'extra'])).toEqual({
       kind: 'usage',
-      error: 'usage: browser-agent run <file.json> | compile <file.json> | --http',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
     })
     expect(parseCliCommand(['node', 'cli.js', 'wat'])).toEqual({
       kind: 'usage',
-      error: 'usage: browser-agent run <file.json> | compile <file.json> | --http',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
     })
     expect(parseCliCommand(['node', 'cli.js', 'run', ''])).toEqual({
       kind: 'usage',
-      error: 'usage: browser-agent run <file.json> | compile <file.json> | --http',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
     })
   })
 })
@@ -212,7 +212,7 @@ describe('executeFlowCli', () => {
         },
       ),
     ).toBe(1)
-    expect(errors).toEqual(['usage: browser-agent run <file.json> | compile <file.json> | --http'])
+    expect(errors).toEqual(['usage: browser-engine run <file.json> | compile <file.json> | --http'])
   })
 
   it('does not run http through the file command', async () => {
@@ -231,13 +231,13 @@ describe('executeFlowCli', () => {
         },
       ),
     ).toBe(1)
-    expect(errors).toEqual(['usage: browser-agent run <file.json> | compile <file.json> | --http'])
+    expect(errors).toEqual(['usage: browser-engine run <file.json> | compile <file.json> | --http'])
   })
 
   it('prints usage and returns 1', async () => {
     const errors: string[] = []
     const code = await executeFlowCli(
-      { kind: 'usage', error: 'usage: browser-agent run <file.json>' },
+      { kind: 'usage', error: 'usage: browser-engine run <file.json>' },
       {
         readFile: () => '',
         writeOut: () => undefined,
@@ -247,6 +247,6 @@ describe('executeFlowCli', () => {
       },
     )
     expect(code).toBe(1)
-    expect(errors.join('\n')).toMatch(/usage: browser-agent run/)
+    expect(errors.join('\n')).toMatch(/usage: browser-engine run/)
   })
 })

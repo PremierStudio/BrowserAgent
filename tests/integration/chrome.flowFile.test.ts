@@ -1,4 +1,4 @@
-// Enable with BROWSER_AGENT_INTEGRATION=1
+// Enable with BROWSER_ENGINE_INTEGRATION=1
 import type { Browser } from 'puppeteer'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { toPageLikeFromUnknown } from '../../src/browser/adaptPage.js'
@@ -8,7 +8,7 @@ import { runFlowFile } from '../../src/intent/runFlowFile.js'
 import { startLocalHtmlServer } from '../../src/testing/localHtmlServer.js'
 import { executeFlowCli } from '../../src/protocol/flowCli.js'
 
-const enabled = process.env.BROWSER_AGENT_INTEGRATION === '1'
+const enabled = process.env.BROWSER_ENGINE_INTEGRATION === '1'
 
 const FLOW_HTML =
   '<!doctype html><html lang="en"><head><title>Start</title></head><body>' +

@@ -275,10 +275,10 @@ describe('registerTools', () => {
 
 describe('initServer', () => {
   it('creates a server with the implementation info', async () => {
-    const server = initServer('browser-agent', '0.0.1')
+    const server = initServer('browser-engine', '0.0.1')
     expect(server).toBeInstanceOf(McpServer)
     const client = await connectClient(server)
-    expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
+    expect(client.init.serverInfo).toEqual({ name: 'browser-engine', version: '0.0.1' })
     await client.close()
   })
 })

@@ -55,18 +55,18 @@ describe('flowPaceMs', () => {
   it('is the watchable headed default unless forced headless', () => {
     expect(HUMAN_PACE_MS).toBe(700)
     expect(flowPaceMs({})).toBe(HUMAN_PACE_MS)
-    expect(flowPaceMs({ BROWSER_AGENT_HEADED: '1' })).toBe(HUMAN_PACE_MS)
-    expect(flowPaceMs({ BROWSER_AGENT_HEADED: '0' })).toBe(0)
+    expect(flowPaceMs({ BROWSER_ENGINE_HEADED: '1' })).toBe(HUMAN_PACE_MS)
+    expect(flowPaceMs({ BROWSER_ENGINE_HEADED: '0' })).toBe(0)
   })
 
-  it('honors BROWSER_AGENT_PACE_MS and ignores junk', () => {
-    expect(flowPaceMs({ BROWSER_AGENT_PACE_MS: '200' })).toBe(200)
-    expect(flowPaceMs({ BROWSER_AGENT_HEADED: '0', BROWSER_AGENT_PACE_MS: '50' })).toBe(50)
-    expect(flowPaceMs({ BROWSER_AGENT_PACE_MS: '0' })).toBe(0)
-    expect(flowPaceMs({ BROWSER_AGENT_HEADED: '1', BROWSER_AGENT_PACE_MS: '0' })).toBe(0)
-    expect(flowPaceMs({ BROWSER_AGENT_PACE_MS: 'nope' })).toBe(HUMAN_PACE_MS)
-    expect(flowPaceMs({ BROWSER_AGENT_PACE_MS: '-1' })).toBe(HUMAN_PACE_MS)
-    expect(flowPaceMs({ BROWSER_AGENT_HEADED: '0', BROWSER_AGENT_PACE_MS: 'nope' })).toBe(0)
+  it('honors BROWSER_ENGINE_PACE_MS and ignores junk', () => {
+    expect(flowPaceMs({ BROWSER_ENGINE_PACE_MS: '200' })).toBe(200)
+    expect(flowPaceMs({ BROWSER_ENGINE_HEADED: '0', BROWSER_ENGINE_PACE_MS: '50' })).toBe(50)
+    expect(flowPaceMs({ BROWSER_ENGINE_PACE_MS: '0' })).toBe(0)
+    expect(flowPaceMs({ BROWSER_ENGINE_HEADED: '1', BROWSER_ENGINE_PACE_MS: '0' })).toBe(0)
+    expect(flowPaceMs({ BROWSER_ENGINE_PACE_MS: 'nope' })).toBe(HUMAN_PACE_MS)
+    expect(flowPaceMs({ BROWSER_ENGINE_PACE_MS: '-1' })).toBe(HUMAN_PACE_MS)
+    expect(flowPaceMs({ BROWSER_ENGINE_HEADED: '0', BROWSER_ENGINE_PACE_MS: 'nope' })).toBe(0)
   })
 })
 
@@ -74,20 +74,22 @@ describe('flowExpectTimeoutMs', () => {
   it('is a headed wait unless forced headless', () => {
     expect(DEFAULT_EXPECT_TIMEOUT_MS).toBe(5000)
     expect(flowExpectTimeoutMs({})).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_HEADED: '1' })).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_HEADED: '0' })).toBe(0)
+    expect(flowExpectTimeoutMs({ BROWSER_ENGINE_HEADED: '1' })).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
+    expect(flowExpectTimeoutMs({ BROWSER_ENGINE_HEADED: '0' })).toBe(0)
   })
 
-  it('honors BROWSER_AGENT_EXPECT_MS and ignores junk', () => {
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_EXPECT_MS: '250' })).toBe(250)
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_HEADED: '0', BROWSER_AGENT_EXPECT_MS: '40' })).toBe(
-      40,
-    )
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_EXPECT_MS: '0' })).toBe(0)
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_EXPECT_MS: 'nope' })).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
-    expect(flowExpectTimeoutMs({ BROWSER_AGENT_EXPECT_MS: '-1' })).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
+  it('honors BROWSER_ENGINE_EXPECT_MS and ignores junk', () => {
+    expect(flowExpectTimeoutMs({ BROWSER_ENGINE_EXPECT_MS: '250' })).toBe(250)
     expect(
-      flowExpectTimeoutMs({ BROWSER_AGENT_HEADED: '0', BROWSER_AGENT_EXPECT_MS: 'nope' }),
+      flowExpectTimeoutMs({ BROWSER_ENGINE_HEADED: '0', BROWSER_ENGINE_EXPECT_MS: '40' }),
+    ).toBe(40)
+    expect(flowExpectTimeoutMs({ BROWSER_ENGINE_EXPECT_MS: '0' })).toBe(0)
+    expect(flowExpectTimeoutMs({ BROWSER_ENGINE_EXPECT_MS: 'nope' })).toBe(
+      DEFAULT_EXPECT_TIMEOUT_MS,
+    )
+    expect(flowExpectTimeoutMs({ BROWSER_ENGINE_EXPECT_MS: '-1' })).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
+    expect(
+      flowExpectTimeoutMs({ BROWSER_ENGINE_HEADED: '0', BROWSER_ENGINE_EXPECT_MS: 'nope' }),
     ).toBe(0)
   })
 
@@ -96,7 +98,7 @@ describe('flowExpectTimeoutMs', () => {
     const clock = () => 7
     expect(
       runFlowToolOptions(
-        { BROWSER_AGENT_PACE_MS: '0', BROWSER_AGENT_EXPECT_MS: '40' },
+        { BROWSER_ENGINE_PACE_MS: '0', BROWSER_ENGINE_EXPECT_MS: '40' },
         sleep,
         clock,
       ),
@@ -106,7 +108,7 @@ describe('flowExpectTimeoutMs', () => {
       sleep,
       clock,
     })
-    expect(runFlowToolOptions({ BROWSER_AGENT_HEADED: '0' }, sleep, clock).expectTimeoutMs).toBe(0)
+    expect(runFlowToolOptions({ BROWSER_ENGINE_HEADED: '0' }, sleep, clock).expectTimeoutMs).toBe(0)
     expect(runFlowToolOptions({}, sleep, clock).expectTimeoutMs).toBe(DEFAULT_EXPECT_TIMEOUT_MS)
   })
 })

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-label="BrowserAgent: unified, event-driven, visually-rich MCP browser-automation server">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-label="BrowserEngine: turn one agent walkthrough into a CI test that runs with no AI">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0b1120"/>
@@ -46,10 +46,10 @@
   </g>
 
   <!-- wordmark: single run, no overlap -->
-  <text x="280" y="196" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="78" font-weight="700" fill="url(#word)" letter-spacing="-1">BrowserAgent</text>
+  <text x="280" y="196" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="78" font-weight="700" fill="url(#word)" letter-spacing="-1">BrowserEngine</text>
 
   <!-- tagline -->
-  <text x="284" y="242" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23" fill="#94a3b8" font-weight="400">Unified MCP browser automation: observe, diff, act, watch</text>
+  <text x="284" y="242" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="23" fill="#94a3b8" font-weight="400">Walk once. Replay in CI with no AI.</text>
 
   <!-- accent underline -->
   <rect x="284" y="266" width="640" height="4" rx="2" fill="url(#accent)"/>

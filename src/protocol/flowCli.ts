@@ -17,7 +17,7 @@ export type FlowCliIo = {
 }
 
 /** Printed when the argv is not mcp, http, run, or compile. */
-const FLOW_CLI_USAGE = 'usage: browser-agent run <file.json> | compile <file.json> | --http'
+const FLOW_CLI_USAGE = 'usage: browser-engine run <file.json> | compile <file.json> | --http'
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) {

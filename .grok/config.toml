@@ -1,9 +1,11 @@
-# Project-scoped MCP: BrowserAgent (local stdio, launches headless Chrome)
-[mcp_servers.browser-agent]
+# Project-scoped MCP: BrowserEngine (set BROWSER_ENGINE_HEADED=1 for a visible window)
+[mcp_servers.browser-engine]
 command = "node"
 args = [
   "C:\\Users\\gollum\\Development\\PremierStudio\\BrowserAgent\\dist\\cli.js",
+  "--headed",
 ]
+env = { BROWSER_ENGINE_HEADED = "1" }
 enabled = true
 startup_timeout_sec = 90
 tool_timeout_sec = 120

@@ -50,9 +50,9 @@ function probeWorkAreaCsv(): string | undefined {
 function registryPath(): string {
   const root = process.env.LOCALAPPDATA ?? process.env.USERPROFILE ?? process.env.HOME
   if (root === undefined || root === '') {
-    return 'browser-agent-instances.json'
+    return 'browser-engine-instances.json'
   }
-  return join(root, 'browser-agent', 'instances.json')
+  return join(root, 'browser-engine', 'instances.json')
 }
 
 const registryFile = registryPath()

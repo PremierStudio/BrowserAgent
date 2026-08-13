@@ -1,4 +1,4 @@
-// Enable with BROWSER_AGENT_INTEGRATION=1
+// Enable with BROWSER_ENGINE_INTEGRATION=1
 import type { Browser } from 'puppeteer'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { toPageLikeFromUnknown } from '../../src/browser/adaptPage.js'
@@ -7,13 +7,13 @@ import { BrowserSession } from '../../src/session/BrowserSession.js'
 import { startLocalHtmlServer } from '../../src/testing/localHtmlServer.js'
 import { firstClickableUid, findSnapshotNode } from './helpers.js'
 
-const enabled = process.env.BROWSER_AGENT_INTEGRATION === '1'
+const enabled = process.env.BROWSER_ENGINE_INTEGRATION === '1'
 
 const SPIN_HTML = `<!doctype html>
 <html lang="en">
 <head><title>Spin</title></head>
 <body>
-  <h1>BrowserAgent spin</h1>
+  <h1>BrowserEngine spin</h1>
   <button id="go">Go</button>
   <p id="out">idle</p>
   <script>

@@ -1,4 +1,4 @@
-// Enable with BROWSER_AGENT_SHOWCASE=1 (headed, public sites, ~2 minutes)
+// Enable with BROWSER_ENGINE_SHOWCASE=1 (headed, public sites, ~2 minutes)
 import type { Browser } from 'puppeteer'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { toPageLikeFromUnknown } from '../../src/browser/adaptPage.js'
@@ -9,7 +9,7 @@ import { DEFAULT_EXPECT_TIMEOUT_MS, HUMAN_PACE_MS, runFlow } from '../../src/int
 import { SHOWCASE_STEPS } from '../../src/intent/showcaseFlow.js'
 import { defaultClock, defaultSleep } from '../../src/intent/watchUntil.js'
 
-const enabled = process.env.BROWSER_AGENT_SHOWCASE === '1'
+const enabled = process.env.BROWSER_ENGINE_SHOWCASE === '1'
 
 describe.skipIf(!enabled)('chrome showcase', () => {
   let browser: Browser | undefined
@@ -42,7 +42,7 @@ describe.skipIf(!enabled)('chrome showcase', () => {
     )
     const context = new PuppeteerContextPage(toPageLikeFromUnknown(raw), {
       sleep: defaultSleep,
-      typeCharMs: typeCharMs({ BROWSER_AGENT_HEADED: '1' }),
+      typeCharMs: typeCharMs({ BROWSER_ENGINE_HEADED: '1' }),
     })
     const result = await runFlow(context, [...SHOWCASE_STEPS], {
       paceMs: HUMAN_PACE_MS,

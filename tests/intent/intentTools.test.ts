@@ -175,8 +175,8 @@ describe('buildIntentTools', () => {
   })
 
   it('run_flow executes steps on the page', async () => {
-    const previous = process.env.BROWSER_AGENT_PACE_MS
-    process.env.BROWSER_AGENT_PACE_MS = '0'
+    const previous = process.env.BROWSER_ENGINE_PACE_MS
+    process.env.BROWSER_ENGINE_PACE_MS = '0'
     try {
       const result = await handlerFor('run_flow')?.(
         { steps: [{ action: 'click', uid: 'btn-1' }] },
@@ -185,9 +185,9 @@ describe('buildIntentTools', () => {
       expect(result).toEqual({ ok: true, steps: 1 })
     } finally {
       if (previous === undefined) {
-        delete process.env.BROWSER_AGENT_PACE_MS
+        delete process.env.BROWSER_ENGINE_PACE_MS
       } else {
-        process.env.BROWSER_AGENT_PACE_MS = previous
+        process.env.BROWSER_ENGINE_PACE_MS = previous
       }
     }
   })

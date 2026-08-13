@@ -7,7 +7,7 @@
 ```bash
 npm start
 node dist/cli.js --headed
-BROWSER_AGENT_HEADED=0 npm start
+BROWSER_ENGINE_HEADED=0 npm start
 npm start -- --http
 ```
 
@@ -49,19 +49,19 @@ The engine re-observes after click or navigate. A name must bind uniquely or the
 
 **HITL:** `confirm_action` returns an `InputRequiredResult` (MRTR / elicitation)
 
-**Resources:** `browser://events` (JSON event stream) and `ui://browser-agent/replay` (MCP App HTML replay)
+**Resources:** `browser://events` (JSON event stream) and `ui://browser-engine/replay` (MCP App HTML replay)
 
 **Trace:** `list_calls` lists recent tool calls with `durationMs` and `resultBytes`
 
 ## Environment
 
-| Variable                  | Role                                            |
-| ------------------------- | ----------------------------------------------- |
-| `BROWSER_AGENT_HEADED=0`  | Headless and instant                            |
-| `BROWSER_AGENT_PACE_MS`   | Pause between `run_flow` steps (`0` is instant) |
-| `BROWSER_AGENT_TYPE_MS`   | Pause between typed characters (`0` is instant) |
-| `BROWSER_AGENT_EXPECT_MS` | How long headed mode waits for `expect*`        |
-| `BROWSER_AGENT_WORK_AREA` | `x,y,width,height` if the default snap is wrong |
+| Variable                   | Role                                            |
+| -------------------------- | ----------------------------------------------- |
+| `BROWSER_ENGINE_HEADED=0`  | Headless and instant                            |
+| `BROWSER_ENGINE_PACE_MS`   | Pause between `run_flow` steps (`0` is instant) |
+| `BROWSER_ENGINE_TYPE_MS`   | Pause between typed characters (`0` is instant) |
+| `BROWSER_ENGINE_EXPECT_MS` | How long headed mode waits for `expect*`        |
+| `BROWSER_ENGINE_WORK_AREA` | `x,y,width,height` if the default snap is wrong |
 
 Headed defaults: about 28ms per typed character, about 700ms between `run_flow` steps, live cursor HUD.
 
@@ -72,14 +72,14 @@ These stay on public, well-labeled pages. No CAPTCHA, no account signup. They re
 **Showcase** (`SHOWCASE_STEPS`): httpbin pizza form, the-internet login, Add/Remove, forgot password, Sauce Demo cart checkout, Playwright TodoMVC.
 
 ```powershell
-$env:BROWSER_AGENT_SHOWCASE='1'
+$env:BROWSER_ENGINE_SHOWCASE='1'
 npx vitest run tests/integration/chrome.showcase.test.ts
 ```
 
 **Banking** (`BANKING_STEPS`): XYZ Bank customer login, Harry Potter, deposit 150, stop on Deposit Successful.
 
 ```powershell
-$env:BROWSER_AGENT_INTEGRATION='1'
+$env:BROWSER_ENGINE_INTEGRATION='1'
 npx vitest run tests/integration/chrome.banking.test.ts
 ```
 

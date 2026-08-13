@@ -13,7 +13,7 @@ type ServerFactory = () => McpServer
 /** The serve function used to run the server over stdio (injectable for tests). */
 export type Serve = (factory: ServerFactory) => StdioServerHandle
 
-const SERVER_NAME = 'browser-agent'
+const SERVER_NAME = 'browser-engine'
 const SERVER_VERSION = '0.0.1'
 
 /** Optional page and event source for the default server. */

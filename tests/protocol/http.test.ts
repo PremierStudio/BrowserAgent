@@ -5,14 +5,14 @@ import { createHttpHandler } from '../../src/protocol/http.js'
 describe('createHttpHandler', () => {
   it('returns a fetch-shaped handler', () => {
     const handler = createHttpHandler(() =>
-      createServer({ name: 'browser-agent', version: '0.0.1' }),
+      createServer({ name: 'browser-engine', version: '0.0.1' }),
     )
     expect(typeof handler.fetch).toBe('function')
   })
 
   it('answers a GET probe without throwing', async () => {
     const handler = createHttpHandler(() =>
-      createServer({ name: 'browser-agent', version: '0.0.1' }),
+      createServer({ name: 'browser-engine', version: '0.0.1' }),
     )
     const response = await handler.fetch(new Request('http://localhost/mcp', { method: 'GET' }))
     expect(response.status).toBeGreaterThanOrEqual(200)
@@ -23,7 +23,7 @@ describe('createHttpHandler', () => {
     let built = 0
     const handler = createHttpHandler(() => {
       built += 1
-      return createServer({ name: 'browser-agent', version: '0.0.1' })
+      return createServer({ name: 'browser-engine', version: '0.0.1' })
     })
     const response = await handler.fetch(
       new Request('http://localhost/mcp', {
@@ -47,7 +47,7 @@ describe('createHttpHandler', () => {
     expect(response.status).toBe(200)
     expect(built).toBeGreaterThan(0)
     const body = await response.text()
-    expect(body).toContain('"name":"browser-agent"')
+    expect(body).toContain('"name":"browser-engine"')
     expect(body).toContain('"version":"0.0.1"')
   })
 })
