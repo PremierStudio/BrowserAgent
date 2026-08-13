@@ -2,7 +2,7 @@
   "name": "browser-agent",
   "version": "0.0.1",
   "private": true,
-  "description": "A browser an agent can see and operate. Bind by visible name, save a flow, replay it with no model.",
+  "description": "An agent walks the path once. You keep the JSON. CI replays it at zero tokens.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
