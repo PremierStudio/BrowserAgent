@@ -4,6 +4,8 @@
 
 `npm start` launches Chrome and serves MCP over stdio. Point a client at `node dist/cli.js`. The server exposes `tools/list`, `tools/call`, and `server/discover`.
 
+CI replay is the same binary without MCP: `node dist/cli.js compile file.json` then `node dist/cli.js run file.json --report reports/flow.json --junit reports/flow.xml`. `--json` prints that report on stdout. Host snippets live in [ci.md](ci.md).
+
 ```bash
 npm start
 node dist/cli.js --headed

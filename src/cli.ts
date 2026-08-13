@@ -222,6 +222,9 @@ if (command.kind === 'compile' || command.kind === 'run' || command.kind === 'us
     writeErr: (line) => {
       process.stderr.write(`${line}\n`)
     },
+    writeFile: (path, text) => {
+      writeFileSync(path, text)
+    },
     runFile:
       command.kind === 'run'
         ? async (file) =>

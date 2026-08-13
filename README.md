@@ -22,6 +22,7 @@
 <p align="center">
   <a href="#what">What it is</a> · <a href="#start">Start</a> · <a href="#flows">Flows</a> ·
   <a href="docs/usage.md">Usage</a> ·
+  <a href="docs/ci.md">CI</a> ·
   <a href="docs/architecture.md">Architecture</a> ·
   <a href="docs/engineering.md">Engineering</a>
 </p>
@@ -127,19 +128,20 @@ Click and navigate must declare `expectUrl` or `expectText`. Type, hover, scroll
 }
 ```
 
-Author with `run_flow` until every bind is unique, write the JSON (no uids), then `compile` / `run` in CI.
+Author with `run_flow` until every bind is unique, write the JSON (no uids), then `compile` / `run` in CI. Any host can fail the job on exit code `1`. Pass `--report` / `--junit` for a machine file your next job (or an agent) can read. Paste-ready GitHub, GitLab, Forgejo, and Bitbucket jobs: [CI](docs/ci.md).
 
 ---
 
 ## Docs
 
-| Doc                                  | What is in it                                         |
-| ------------------------------------ | ----------------------------------------------------- |
-| [Usage](docs/usage.md)               | MCP, desk/page/intent tools, env, public-site demos   |
-| [Architecture](docs/architecture.md) | Engine, clients, page model, what is not in this repo |
-| [Engineering](docs/engineering.md)   | `npm run ci`, 100/100 gates, stack                    |
-| [mvp.md](docs/mvp.md)                | Product plan                                          |
-| [decisions.md](docs/decisions.md)    | Amendments (win over mvp.md)                          |
+| Doc                                  | What is in it                                           |
+| ------------------------------------ | ------------------------------------------------------- |
+| [Usage](docs/usage.md)               | MCP, desk/page/intent tools, env, public-site demos     |
+| [CI](docs/ci.md)                     | `compile` / `run` on GitHub, GitLab, Forgejo, Bitbucket |
+| [Architecture](docs/architecture.md) | Engine, clients, page model, what is not in this repo   |
+| [Engineering](docs/engineering.md)   | `npm run ci`, 100/100 gates, stack                      |
+| [mvp.md](docs/mvp.md)                | Product plan                                            |
+| [decisions.md](docs/decisions.md)    | Amendments (win over mvp.md)                            |
 
 ---
 

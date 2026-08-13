@@ -64,7 +64,7 @@ describe.skipIf(!enabled)('chrome flow file', () => {
     }
     const compiled: string[] = []
     const compileCode = await executeFlowCli(
-      { kind: 'compile', path: 'click-go.json' },
+      { kind: 'compile', path: 'click-go.json', json: false },
       {
         readFile: () => JSON.stringify(saved.file),
         writeOut: (line) => {

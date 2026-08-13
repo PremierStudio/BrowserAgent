@@ -31,10 +31,111 @@ describe('parseCliCommand', () => {
     expect(parseCliCommand(['node', 'cli.js', 'run', 'flows/a.json'])).toEqual({
       kind: 'run',
       path: 'flows/a.json',
+      json: false,
+      report: undefined,
+      junit: undefined,
     })
     expect(parseCliCommand(['node', 'cli.js', 'compile', 'flows/a.json'])).toEqual({
       kind: 'compile',
       path: 'flows/a.json',
+      json: false,
+      report: undefined,
+      junit: undefined,
+    })
+  })
+
+  it('accepts --json, --report, and --junit around the file path', () => {
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--json', 'flows/a.json'])).toEqual({
+      kind: 'run',
+      path: 'flows/a.json',
+      json: true,
+      report: undefined,
+      junit: undefined,
+    })
+    expect(
+      parseCliCommand([
+        'node',
+        'cli.js',
+        'compile',
+        'flows/a.json',
+        '--json',
+        '--report',
+        'out.json',
+      ]),
+    ).toEqual({
+      kind: 'compile',
+      path: 'flows/a.json',
+      json: true,
+      report: 'out.json',
+      junit: undefined,
+    })
+    expect(
+      parseCliCommand(['node', 'cli.js', 'run', '--junit', 'report.xml', 'flows/a.json']),
+    ).toEqual({
+      kind: 'run',
+      path: 'flows/a.json',
+      json: false,
+      report: undefined,
+      junit: 'report.xml',
+    })
+    expect(
+      parseCliCommand([
+        'node',
+        'cli.js',
+        'run',
+        '--report',
+        'out.json',
+        '--junit',
+        'out.xml',
+        'flows/a.json',
+      ]),
+    ).toEqual({
+      kind: 'run',
+      path: 'flows/a.json',
+      json: false,
+      report: 'out.json',
+      junit: 'out.xml',
+    })
+  })
+
+  it('refuses a flag without its path or an unknown flag', () => {
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--report'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--junit', '--json', 'a.json'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--pretty', 'a.json'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--pretty'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--report', '--json', 'a.json'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'compile', '--report', '', 'flows/a.json'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--json'])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    expect(parseCliCommand(['node', 'cli.js', 'compile', '--report', ''])).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
+    })
+    const sparse: string[] = ['node', 'cli.js', 'run']
+    sparse[4] = 'flows/a.json'
+    expect(parseCliCommand(sparse)).toEqual({
+      kind: 'usage',
+      error: 'usage: browser-engine run <file.json> | compile <file.json> | --http',
     })
   })
 
@@ -176,6 +277,23 @@ describe('executeFlowCli', () => {
     )
     expect(code).toBe(1)
     expect(errors.join('\n')).toMatch(/run requires a page/)
+    const jsonLines: string[] = []
+    const jsonCode = await executeFlowCli(
+      { kind: 'run', path: 'flows/login.json', json: true },
+      {
+        readFile: () => fileText(),
+        writeOut: (line) => {
+          jsonLines.push(line)
+        },
+        writeErr: () => undefined,
+      },
+    )
+    expect(jsonCode).toBe(1)
+    expect(JSON.parse(jsonLines.join('\n'))).toMatchObject({
+      ok: false,
+      command: 'run',
+      error: 'run requires a page',
+    })
   })
 
   it('returns 1 when the file cannot be read', async () => {
@@ -248,5 +366,134 @@ describe('executeFlowCli', () => {
     )
     expect(code).toBe(1)
     expect(errors.join('\n')).toMatch(/usage: browser-engine run/)
+  })
+
+  it('prints a JSON report on stdout when --json is set', async () => {
+    const lines: string[] = []
+    const code = await executeFlowCli(
+      { kind: 'compile', path: 'flows/login.json', json: true },
+      {
+        readFile: () => fileText(),
+        writeOut: (line) => {
+          lines.push(line)
+        },
+        writeErr: () => undefined,
+      },
+    )
+    expect(code).toBe(0)
+    expect(JSON.parse(lines.join('\n'))).toEqual({
+      ok: true,
+      command: 'compile',
+      path: 'flows/login.json',
+      name: 'login',
+      steps: 1,
+    })
+  })
+
+  it('puts a run step failure into the JSON report', async () => {
+    const lines: string[] = []
+    const code = await executeFlowCli(
+      { kind: 'run', path: 'flows/login.json', json: true },
+      {
+        readFile: () => fileText(),
+        writeOut: (line) => {
+          lines.push(line)
+        },
+        writeErr: () => undefined,
+        runFile: async () => {
+          throw new Error('step 1 click: no target')
+        },
+      },
+    )
+    expect(code).toBe(1)
+    expect(JSON.parse(lines.join('\n'))).toEqual({
+      ok: false,
+      command: 'run',
+      path: 'flows/login.json',
+      name: 'login',
+      error: 'step 1 click: no target',
+      failure: { step: 1, action: 'click', message: 'no target' },
+    })
+  })
+
+  it('writes only a JSON report file when --junit is omitted', async () => {
+    const files = new Map<string, string>()
+    const code = await executeFlowCli(
+      { kind: 'compile', path: 'flows/login.json', json: false, report: 'out.json' },
+      {
+        readFile: () => fileText(),
+        writeOut: () => undefined,
+        writeErr: () => undefined,
+        writeFile: (path, text) => {
+          files.set(path, text)
+        },
+      },
+    )
+    expect(code).toBe(0)
+    expect([...files.keys()]).toEqual(['out.json'])
+  })
+
+  it('writes only a JUnit file when --report is omitted', async () => {
+    const files = new Map<string, string>()
+    const code = await executeFlowCli(
+      { kind: 'compile', path: 'flows/login.json', json: false, junit: 'out.xml' },
+      {
+        readFile: () => fileText(),
+        writeOut: () => undefined,
+        writeErr: () => undefined,
+        writeFile: (path, text) => {
+          files.set(path, text)
+        },
+      },
+    )
+    expect(code).toBe(0)
+    expect([...files.keys()]).toEqual(['out.xml'])
+    expect(files.get('out.xml')).toContain('failures="0"')
+  })
+
+  it('writes --report JSON and --junit XML through the injected writer', async () => {
+    const files = new Map<string, string>()
+    const code = await executeFlowCli(
+      {
+        kind: 'run',
+        path: 'flows/login.json',
+        json: false,
+        report: 'out.json',
+        junit: 'out.xml',
+      },
+      {
+        readFile: () => fileText(),
+        writeOut: () => undefined,
+        writeErr: () => undefined,
+        writeFile: (path, text) => {
+          files.set(path, text)
+        },
+        runFile: async () => ({ ok: true, steps: 1 }),
+      },
+    )
+    expect(code).toBe(0)
+    expect(JSON.parse(files.get('out.json') ?? '')).toMatchObject({
+      ok: true,
+      command: 'run',
+      name: 'login',
+    })
+    expect(files.get('out.xml')).toContain('failures="0"')
+    expect(files.get('out.xml')).toContain('name="run login"')
+  })
+
+  it('returns 1 when a report file is requested without a writer', async () => {
+    const errors: string[] = []
+    const code = await executeFlowCli(
+      { kind: 'compile', path: 'flows/login.json', json: false, report: 'out.json' },
+      {
+        readFile: () => fileText(),
+        writeOut: () => undefined,
+        writeErr: (line) => {
+          errors.push(line)
+        },
+      },
+    )
+    expect(code).toBe(1)
+    expect(errors.join('\n')).toMatch(/file output requires a writer/)
   })
 })

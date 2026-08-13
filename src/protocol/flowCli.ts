@@ -1,11 +1,30 @@
 import { parseFlowFile, type FlowFile } from '../intent/flowFile.js'
+import {
+  buildFlowReport,
+  formatHumanLine,
+  serializeFlowReport,
+  toJunitXml,
+  type FlowReport,
+} from './flowReport.js'
 
 /** How this process was invoked. */
 export type CliCommand =
   | { readonly kind: 'mcp' }
   | { readonly kind: 'http' }
-  | { readonly kind: 'run'; readonly path: string }
-  | { readonly kind: 'compile'; readonly path: string }
+  | {
+      readonly kind: 'run'
+      readonly path: string
+      readonly json?: boolean
+      readonly report?: string
+      readonly junit?: string
+    }
+  | {
+      readonly kind: 'compile'
+      readonly path: string
+      readonly json?: boolean
+      readonly report?: string
+      readonly junit?: string
+    }
   | { readonly kind: 'usage'; readonly error: string }
 
 /** Injected IO so compile/run tests never touch the real filesystem. */
@@ -13,11 +32,14 @@ export type FlowCliIo = {
   readFile: (path: string) => string
   writeOut: (line: string) => void
   writeErr: (line: string) => void
+  writeFile?: (path: string, text: string) => void
   runFile?: (file: FlowFile) => Promise<{ ok: true; steps: number }>
 }
 
 /** Printed when the argv is not mcp, http, run, or compile. */
 const FLOW_CLI_USAGE = 'usage: browser-engine run <file.json> | compile <file.json> | --http'
+
+type FileCommand = Extract<CliCommand, { kind: 'run' } | { kind: 'compile' }>
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -26,24 +48,58 @@ function errorMessage(error: unknown): string {
   return String(error)
 }
 
+function isFlagValue(value: string | undefined): value is string {
+  return value !== undefined && value !== '' && !value.startsWith('--')
+}
+
+function parseFileCommand(kind: 'run' | 'compile', rest: readonly string[]): CliCommand {
+  let json = false
+  let report: string | undefined
+  let junit: string | undefined
+  let path: string | undefined
+  const args = [...rest]
+  while (args.length > 0) {
+    const arg = args.shift()
+    if (arg === undefined) {
+      return { kind: 'usage', error: FLOW_CLI_USAGE }
+    }
+    if (arg === '--json') {
+      json = true
+      continue
+    }
+    if (arg === '--report') {
+      const next = args.shift()
+      if (!isFlagValue(next)) {
+        return { kind: 'usage', error: FLOW_CLI_USAGE }
+      }
+      report = next
+      continue
+    }
+    if (arg === '--junit') {
+      const next = args.shift()
+      if (!isFlagValue(next)) {
+        return { kind: 'usage', error: FLOW_CLI_USAGE }
+      }
+      junit = next
+      continue
+    }
+    if (arg.startsWith('--') || path !== undefined || arg === '') {
+      return { kind: 'usage', error: FLOW_CLI_USAGE }
+    }
+    path = arg
+  }
+  if (path === undefined) {
+    return { kind: 'usage', error: FLOW_CLI_USAGE }
+  }
+  return { kind, path, json, report, junit }
+}
+
 /** Read process.argv after node and the script path. */
 export function parseCliCommand(argv: readonly string[]): CliCommand {
   const args = argv.slice(2)
-  if (args[0] === 'run' || args[0] === 'compile') {
-    const paths: string[] = []
-    for (const [index, arg] of args.entries()) {
-      if (index > 0) {
-        paths.push(arg)
-      }
-    }
-    if (paths.length === 1) {
-      for (const path of paths) {
-        if (path !== '') {
-          return { kind: args[0], path }
-        }
-      }
-    }
-    return { kind: 'usage', error: FLOW_CLI_USAGE }
+  const head = args[0]
+  if (head === 'run' || head === 'compile') {
+    return parseFileCommand(head, args.slice(1))
   }
   if (args.includes('--http')) {
     return { kind: 'http' }
@@ -52,6 +108,45 @@ export function parseCliCommand(argv: readonly string[]): CliCommand {
     return { kind: 'mcp' }
   }
   return { kind: 'usage', error: FLOW_CLI_USAGE }
+}
+
+function writeArtifacts(
+  command: FileCommand,
+  report: FlowReport,
+  io: FlowCliIo,
+): string | undefined {
+  if (command.report === undefined && command.junit === undefined) {
+    return undefined
+  }
+  if (io.writeFile === undefined) {
+    return 'file output requires a writer'
+  }
+  if (command.report !== undefined) {
+    io.writeFile(command.report, serializeFlowReport(report))
+  }
+  if (command.junit !== undefined) {
+    io.writeFile(command.junit, toJunitXml(report))
+  }
+  return undefined
+}
+
+function publish(command: FileCommand, report: FlowReport, io: FlowCliIo): number {
+  if (command.json === true) {
+    io.writeOut(JSON.stringify(report))
+  } else if (report.ok) {
+    io.writeOut(formatHumanLine(report))
+  } else {
+    io.writeErr(formatHumanLine(report))
+  }
+  const artifactError = writeArtifacts(command, report, io)
+  if (artifactError !== undefined) {
+    io.writeErr(artifactError)
+    return 1
+  }
+  if (report.ok) {
+    return 0
+  }
+  return 1
 }
 
 /** Compile or run a flow file. MCP and HTTP stay on the existing servers. */
@@ -68,29 +163,81 @@ export async function executeFlowCli(command: CliCommand, io: FlowCliIo): Promis
   try {
     text = io.readFile(command.path)
   } catch (error) {
-    io.writeErr(errorMessage(error))
-    return 1
+    return publish(
+      command,
+      buildFlowReport({
+        ok: false,
+        command: command.kind,
+        path: command.path,
+        error: errorMessage(error),
+      }),
+      io,
+    )
   }
   const parsed = parseFlowFile(text)
   if (!parsed.ok) {
-    io.writeErr(parsed.error)
-    return 1
+    return publish(
+      command,
+      buildFlowReport({
+        ok: false,
+        command: command.kind,
+        path: command.path,
+        error: parsed.error,
+      }),
+      io,
+    )
   }
   if (command.kind === 'compile') {
-    io.writeOut(`ok compile name=${parsed.file.name} steps=${parsed.file.steps.length}`)
-    return 0
+    return publish(
+      command,
+      buildFlowReport({
+        ok: true,
+        command: 'compile',
+        path: command.path,
+        name: parsed.file.name,
+        steps: parsed.file.steps.length,
+      }),
+      io,
+    )
   }
   const runFile = io.runFile
   if (runFile === undefined) {
-    io.writeErr('run requires a page')
-    return 1
+    return publish(
+      command,
+      buildFlowReport({
+        ok: false,
+        command: 'run',
+        path: command.path,
+        name: parsed.file.name,
+        error: 'run requires a page',
+      }),
+      io,
+    )
   }
   try {
     const result = await runFile(parsed.file)
-    io.writeOut(`ok run name=${parsed.file.name} steps=${result.steps}`)
-    return 0
+    return publish(
+      command,
+      buildFlowReport({
+        ok: true,
+        command: 'run',
+        path: command.path,
+        name: parsed.file.name,
+        steps: result.steps,
+      }),
+      io,
+    )
   } catch (error) {
-    io.writeErr(errorMessage(error))
-    return 1
+    return publish(
+      command,
+      buildFlowReport({
+        ok: false,
+        command: 'run',
+        path: command.path,
+        name: parsed.file.name,
+        error: errorMessage(error),
+      }),
+      io,
+    )
   }
 }
