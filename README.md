@@ -3,8 +3,9 @@
 </p>
 
 <p align="center">
-  A <strong>browser engine</strong>. See a page. Bind a control by the name a person sees.
-  Save the path as JSON. Replay it in CI with no model and no MCP.
+  A <strong>browser an agent can see and operate</strong>. One page model.
+  Bind a control by the name a person sees. When the path is right, save it
+  and replay it with no model.
 </p>
 
 <p align="center">
@@ -29,9 +30,13 @@
 
 ## What this is
 
-BrowserAgent is the hands. It owns Chrome, the accessibility tree, the pixel overlay, named binding, and the runner that plays a saved path.
+BrowserAgent is a **browser for agents**. Not a screenshot API. Not a CSS recorder. Not a chat plugin that forgets the page every turn.
 
-An agent can drive it over MCP. That is useful. It is not the product. The product is: **author a path once, keep a file, run the file forever.**
+The agent gets one model: the name and role of each control, where it sits in pixels, and what just happened (console, network, DOM, navigation). It clicks and types by those names. It can wait, verify, and explain. The window is headed, so a person can watch the same thing.
+
+When a path is worth keeping, that same engine writes JSON and runs it in CI with no model and no MCP. Live use and replay are not two products.
+
+MCP is how an agent talks to it. PremierQuality (catalogs, testers) and BugTrace (video) can call this later. They do not live here.
 
 | This repo                                                       | Not this repo                                            |
 | --------------------------------------------------------------- | -------------------------------------------------------- |
@@ -40,16 +45,14 @@ An agent can drive it over MCP. That is useful. It is not the product. The produ
 | Unified `observe` (a11y snapshot + screenshot + overlay)        | Customer capture widgets                                 |
 | Durable flow JSON (no uids on disk)                             | Recorders that emit `#txt_visit_date`                    |
 | CLI `compile` / `run` with no LLM                               | Chat-only browsers that bill tokens every replay         |
-| MCP stdio / HTTP as the **authoring** door                      |                                                          |
-
-PremierQuality and BugTrace can call this later. They do not live here.
+| MCP stdio / HTTP as one way to hold the mouse                   |                                                          |
 
 ---
 
 ## Highlights
 
-- **An engine, not a chat plugin.** MCP is one socket. The same code compiles and runs a saved flow from the CLI.
-- **Author once, replay forever.** Walk the site by label. Write JSON. CI runs `compile` then `run` and spends zero tokens.
+- **A browser for the agent, not a plugin.** See, bind, act, wait, verify. MCP is one socket.
+- **Then keep the path.** Walk the site by label. Write JSON. CI runs `compile` then `run` and spends zero tokens.
 - **Names, not CSS.** `run_flow` binds `name` / `role` / `near`, re-resolves after click or navigate, and stops with candidates when a label is ambiguous.
 - **One model, not two.** `observe` returns the a11y snapshot and the pixel overlay in a single call.
 - **Headed by default.** Left-snap Chrome, live cursor HUD, paced typing. Headless is instant.
@@ -64,7 +67,7 @@ PremierQuality and BugTrace can call this later. They do not live here.
 
 Most browser stacks split "read the page" from "act on the page." One world is text, the other is pixels. The model re-reads every turn and guesses which box is which control.
 
-BrowserAgent builds one object: the semantic layer and the visual layer together. An agent can watch, act, and explain. After a path is named and saved, the engine replays it without a model. That second life is the point. MCP is how the agent holds the mouse while it learns the path.
+BrowserAgent builds one object: the semantic layer and the visual layer together. An agent can watch, act, and explain. After a path is named and saved, the engine replays it without a model. That second life is why this is not another chat browser. MCP is how the agent holds the mouse.
 
 ---
 

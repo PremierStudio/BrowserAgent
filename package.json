@@ -2,7 +2,7 @@
   "name": "browser-agent",
   "version": "0.0.1",
   "private": true,
-  "description": "Browser engine: bind pages by visible name, save a flow, replay it with no model. MCP is one authoring door.",
+  "description": "A browser an agent can see and operate. Bind by visible name, save a flow, replay it with no model.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
