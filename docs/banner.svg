@@ -35,7 +35,7 @@
   <circle cx="1040" cy="380" r="240" fill="#f59e0b" fill-opacity="0.05"/>
 
   <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="48" y="52" font-size="28" font-weight="700" fill="url(#word)" letter-spacing="-0.4">BrowserEngine</text>
-  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="48" y="82" font-size="16" fill="#94a3b8">Explore with an agent. Replay with no model. Heal the path when it breaks.</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="48" y="82" font-size="16" fill="#94a3b8">Explore with an agent. Replay with no model. A named report when it breaks.</text>
 
   <!-- EXPLORE -->
   <g filter="url(#soft)">
@@ -89,9 +89,9 @@
     <rect x="812" y="118" width="340" height="258" rx="18" fill="url(#card)" stroke="#1e293b"/>
     <rect x="812" y="118" width="6" height="258" rx="3" fill="url(#heal)"/>
   </g>
-  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="150" font-size="12" font-weight="700" fill="#fbbf24" letter-spacing="2.2">3  HEAL</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="150" font-size="12" font-weight="700" fill="#fbbf24" letter-spacing="2.2">3  REPORT</text>
   <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="176" font-size="18" font-weight="600" fill="#e2e8f0">When a step breaks</text>
-  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="198" font-size="13" fill="#94a3b8">Agent files a bug or updates the flow</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="836" y="198" font-size="13" fill="#94a3b8">Named JSON. Your tools decide next.</text>
 
   <rect x="836" y="216" width="292" height="56" rx="10" fill="#1c1008" stroke="#7c2d12"/>
   <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="240" font-size="12" font-weight="600" fill="#fdba74">step 2 click Login</text>
@@ -99,11 +99,11 @@
 
   <rect x="836" y="284" width="138" height="52" rx="10" fill="#0f172a" stroke="#334155"/>
   <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="306" font-size="11" fill="#94a3b8">product broke</text>
-  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="324" font-size="13" font-weight="600" fill="#e2e8f0">file a ticket</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="850" y="324" font-size="13" font-weight="600" fill="#e2e8f0">your ticket tool</text>
 
   <rect x="990" y="284" width="138" height="52" rx="10" fill="#0f172a" stroke="#334155"/>
   <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="1004" y="306" font-size="11" fill="#94a3b8">button renamed</text>
-  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="1004" y="324" font-size="13" font-weight="600" fill="#fde68a">heal the step</text>
+  <text font-family="ui-sans-serif, Segoe UI, Helvetica Neue, Arial, sans-serif" x="1004" y="324" font-size="13" font-weight="600" fill="#fde68a">you edit the JSON</text>
 
   <!-- arrows between cards -->
   <path d="M398 248 h20" stroke="#334155" stroke-width="2"/>

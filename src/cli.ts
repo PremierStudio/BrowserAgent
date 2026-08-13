@@ -30,6 +30,7 @@ import { runFlowFile } from './intent/runFlowFile.js'
 import { defaultClock, defaultSleep } from './intent/watchUntil.js'
 import { buildCliMain, buildHttpHandler } from './protocol/cli.js'
 import { executeFlowCli, parseCliCommand } from './protocol/flowCli.js'
+import { writeOutputFile } from './protocol/writeOutputFile.js'
 import { isHttpArg, listenHttp } from './protocol/httpListen.js'
 
 function probeWorkAreaCsv(): string | undefined {
@@ -222,9 +223,7 @@ if (command.kind === 'compile' || command.kind === 'run' || command.kind === 'us
     writeErr: (line) => {
       process.stderr.write(`${line}\n`)
     },
-    writeFile: (path, text) => {
-      writeFileSync(path, text)
-    },
+    writeFile: writeOutputFile,
     runFile:
       command.kind === 'run'
         ? async (file) =>

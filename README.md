@@ -77,19 +77,20 @@ npm install
 npm run build
 ```
 
-Replay the checked-in login fixture (headless):
+Check the checked-in fixture (`compile` does not open Chrome). The JSON is a schema example. `https://example.com/login` is not a real form, so do not `run` this file against the network.
+
+```bash
+node dist/cli.js compile tests/fixtures/login.flow.json
+```
+
+Replay **your** flow headless, and write a report:
 
 ```powershell
 $env:BROWSER_ENGINE_HEADED='0'
-node dist/cli.js compile tests/fixtures/login.flow.json
-node dist/cli.js run tests/fixtures/login.flow.json --report reports/login.json --junit reports/login.xml
+node dist/cli.js run flows/your.flow.json --report reports/flow.json --junit reports/flow.xml
 ```
 
-```bash
-BROWSER_ENGINE_HEADED=0 node dist/cli.js run tests/fixtures/login.flow.json --report reports/login.json
-```
-
-A failure names the step (`step 2 click: no target ...`) and the same facts land in the report file. Drop those two commands into GitHub, GitLab, Forgejo, or Bitbucket: [CI](docs/ci.md).
+A failure names the step (`step 2 click: no target ...`) and the same facts land in the report file. Paste-ready GitHub, GitLab, Forgejo, and Bitbucket jobs: [CI](docs/ci.md).
 
 Give an agent the same engine over MCP:
 
@@ -141,8 +142,7 @@ Author with `run_flow` until every bind is unique, write the JSON (no uids), the
 | [CI](docs/ci.md)                     | `compile` / `run` on GitHub, GitLab, Forgejo, Bitbucket |
 | [Architecture](docs/architecture.md) | Engine, clients, page model, what is not in this repo   |
 | [Engineering](docs/engineering.md)   | `npm run ci`, 100/100 gates, stack                      |
-| [mvp.md](docs/mvp.md)                | Product plan                                            |
-| [decisions.md](docs/decisions.md)    | Amendments (win over mvp.md)                            |
+| [decisions.md](docs/decisions.md)    | Settled engineering decisions                           |
 
 ---
 

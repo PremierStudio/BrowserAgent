@@ -3,6 +3,9 @@ coverage/
 reports/
 .stryker-tmp/
 dist/
+dist-scripts/
+.grok/
+tmp*
 *.log
 .env
 .env.*

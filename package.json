@@ -2,7 +2,12 @@
   "name": "browser-engine",
   "version": "0.0.1",
   "private": true,
-  "description": "Turn one agent walkthrough into a CI test that runs with no AI.",
+  "description": "An agent explores the product. CI replays the path with no AI. A broken step is a named report.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PremierStudio/BrowserEngine.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

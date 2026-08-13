@@ -27,6 +27,18 @@ describe('parseCliCommand', () => {
     expect(parseCliCommand(['node', 'cli.js', '--http'])).toEqual({ kind: 'http' })
   })
 
+  it('ignores --headed so MCP and run still launch', () => {
+    expect(parseCliCommand(['node', 'cli.js', '--headed'])).toEqual({ kind: 'mcp' })
+    expect(parseCliCommand(['node', 'cli.js', '--http', '--headed'])).toEqual({ kind: 'http' })
+    expect(parseCliCommand(['node', 'cli.js', 'run', '--headed', 'flows/a.json'])).toEqual({
+      kind: 'run',
+      path: 'flows/a.json',
+      json: false,
+      report: undefined,
+      junit: undefined,
+    })
+  })
+
   it('runs or compiles a flow file', () => {
     expect(parseCliCommand(['node', 'cli.js', 'run', 'flows/a.json'])).toEqual({
       kind: 'run',

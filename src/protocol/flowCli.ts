@@ -94,9 +94,19 @@ function parseFileCommand(kind: 'run' | 'compile', rest: readonly string[]): Cli
   return { kind, path, json, report, junit }
 }
 
+function withoutHeadedFlag(argv: readonly string[]): string[] {
+  const kept: string[] = []
+  for (const arg of argv) {
+    if (arg !== '--headed') {
+      kept.push(arg)
+    }
+  }
+  return kept
+}
+
 /** Read process.argv after node and the script path. */
 export function parseCliCommand(argv: readonly string[]): CliCommand {
-  const args = argv.slice(2)
+  const args = withoutHeadedFlag(argv).slice(2)
   const head = args[0]
   if (head === 'run' || head === 'compile') {
     return parseFileCommand(head, args.slice(1))

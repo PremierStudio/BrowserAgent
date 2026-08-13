@@ -6,8 +6,8 @@ What it does: `compile` then `run`, exit `0` or `1`, and an optional machine rep
 
 ```bash
 npm run build
-BROWSER_ENGINE_HEADED=0 node dist/cli.js compile flows/login.json
-BROWSER_ENGINE_HEADED=0 node dist/cli.js run flows/login.json --report reports/login.json --junit reports/login.xml
+BROWSER_ENGINE_HEADED=0 node dist/cli.js compile tests/fixtures/login.flow.json
+BROWSER_ENGINE_HEADED=0 node dist/cli.js run path/to/your.flow.json --report reports/login.json --junit reports/login.xml
 ```
 
 `--json` prints the same report on stdout (one object). `--report` writes it to a file. `--junit` writes one testcase so hosts that already ingest JUnit can show the failure.
@@ -18,7 +18,7 @@ A failed run looks like:
 {
   "ok": false,
   "command": "run",
-  "path": "flows/login.json",
+  "path": "tests/fixtures/login.flow.json",
   "name": "login",
   "error": "step 2 click: no target Login",
   "failure": { "step": 2, "action": "click", "message": "no target Login" }
@@ -49,8 +49,9 @@ jobs:
           BROWSER_ENGINE_HEADED: '0'
         run: |
           mkdir -p reports
-          node dist/cli.js compile flows/login.json
-          node dist/cli.js run flows/login.json --report reports/login.json --junit reports/login.xml
+          node dist/cli.js compile tests/fixtures/login.flow.json
+          # run your own flow (the fixture is schema-only, not a live site):
+          # node dist/cli.js run flows/your.flow.json --report reports/flow.json --junit reports/flow.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -66,8 +67,9 @@ replay:
   script:
     - npm ci && npm run build
     - mkdir -p reports
-    - BROWSER_ENGINE_HEADED=0 node dist/cli.js compile flows/login.json
-    - BROWSER_ENGINE_HEADED=0 node dist/cli.js run flows/login.json --report reports/login.json --junit reports/login.xml
+    - BROWSER_ENGINE_HEADED=0 node dist/cli.js compile tests/fixtures/login.flow.json
+    # run your own flow (the fixture is schema-only, not a live site)
+    # - BROWSER_ENGINE_HEADED=0 node dist/cli.js run flows/your.flow.json --report reports/flow.json --junit reports/flow.xml
   artifacts:
     when: always
     reports:
@@ -92,8 +94,9 @@ pipelines:
           - npm ci && npm run build
           - mkdir -p reports
           - export BROWSER_ENGINE_HEADED=0
-          - node dist/cli.js compile flows/login.json
-          - node dist/cli.js run flows/login.json --report reports/login.json --junit reports/login.xml
+          - node dist/cli.js compile tests/fixtures/login.flow.json
+          # run your own flow (the fixture is schema-only, not a live site)
+          # - node dist/cli.js run flows/your.flow.json --report reports/flow.json --junit reports/flow.xml
         artifacts:
           - reports/**
 ```

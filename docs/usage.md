@@ -81,7 +81,7 @@ npx vitest run tests/integration/chrome.showcase.test.ts
 **Banking** (`BANKING_STEPS`): XYZ Bank customer login, Harry Potter, deposit 150, stop on Deposit Successful.
 
 ```powershell
-$env:BROWSER_ENGINE_INTEGRATION='1'
+$env:BROWSER_ENGINE_SHOWCASE='1'
 npx vitest run tests/integration/chrome.banking.test.ts
 ```
 

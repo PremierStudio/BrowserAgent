@@ -39,6 +39,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Build
+        run: npm run build
+
+      - name: Compile fixture via CLI
+        run: node dist/cli.js compile tests/fixtures/login.flow.json
+
       - name: Coverage (100% gate)
         run: npm run coverage
 
