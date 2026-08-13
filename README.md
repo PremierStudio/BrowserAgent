@@ -4,7 +4,7 @@
 
 <p align="center">
   An agent explores the product. CI replays the path with no AI.
-  When a step breaks, the agent files a bug or heals the flow.
+  A broken step is a named report. Your tools decide ticket or heal.
 </p>
 
 <p align="center">
@@ -44,20 +44,21 @@ BrowserEngine is the middle path.
 
 The agent drives a real Chrome window and refers to controls the way a person would: "Username", "Login", "the Add to cart near Sauce Labs Backpack." Those **visible names** are what get saved, as ordinary JSON. CI then opens Chrome and follows the same names. No language model is in that run. No MCP session is required. The bill is the same as any other headless test.
 
-When a step fails, the report is in the same language: "step 2 click Login: two matches" or "no control named Login." An agent (or a person) can tell the difference between **the product broke** (open a ticket) and **the button is now called Sign in** (change one line in the file). The suite stays cheap because only the broken step needs a model, and only if you want one.
+When a step fails, CI gets a named report, not a dead CSS selector: `step 2 click Login: two matches`. `--report` writes JSON. `--junit` writes one testcase. This repo does not open tickets or push a heal. Everyone uses a different tracker and a different branch policy. Your next job (or an agent) reads the file and uses _your_ tools.
 
-That is what this repo is for: author with an agent, keep a file, replay without one. Headed while you watch, headless in CI. Same engine.
+That is what this repo is for: author with an agent, keep a file, replay without one, emit a report when it breaks. Headed while you watch, headless in CI. Same engine.
 
 ### Modes
 
-| Mode                 | For                          | How                                      |
-| -------------------- | ---------------------------- | ---------------------------------------- |
-| **Headed** (default) | Authoring and demos          | Visible Chrome, cursor HUD, paced typing |
-| **Headless**         | CI and background            | `BROWSER_ENGINE_HEADED=0`                |
-| **MCP stdio**        | A live agent in this process | `npm start`                              |
-| **MCP HTTP**         | A remote agent               | `npm start -- --http`                    |
-| **CLI compile**      | Check a flow file, no Chrome | `node dist/cli.js compile path.json`     |
-| **CLI run**          | Replay a flow                | `node dist/cli.js run path.json`         |
+| Mode                 | For                          | How                                                |
+| -------------------- | ---------------------------- | -------------------------------------------------- |
+| **Headed** (default) | Authoring and demos          | Visible Chrome, cursor HUD, paced typing           |
+| **Headless**         | CI and background            | `BROWSER_ENGINE_HEADED=0`                          |
+| **MCP stdio**        | A live agent in this process | `npm start`                                        |
+| **MCP HTTP**         | A remote agent               | `npm start -- --http`                              |
+| **CLI compile**      | Check a flow file, no Chrome | `node dist/cli.js compile path.json`               |
+| **CLI run**          | Replay a flow                | `node dist/cli.js run path.json`                   |
+| **CI report**        | Machine file for any host    | `--json` · `--report out.json` · `--junit out.xml` |
 
 Pace, type delay, expect timeout, and the work-area snap are all env-configurable. See [usage](docs/usage.md).
 
@@ -81,14 +82,14 @@ Replay the checked-in login fixture (headless):
 ```powershell
 $env:BROWSER_ENGINE_HEADED='0'
 node dist/cli.js compile tests/fixtures/login.flow.json
-node dist/cli.js run tests/fixtures/login.flow.json
+node dist/cli.js run tests/fixtures/login.flow.json --report reports/login.json --junit reports/login.xml
 ```
 
 ```bash
-BROWSER_ENGINE_HEADED=0 node dist/cli.js run tests/fixtures/login.flow.json
+BROWSER_ENGINE_HEADED=0 node dist/cli.js run tests/fixtures/login.flow.json --report reports/login.json
 ```
 
-A failure names the step: `step 2 click: no target ...`.
+A failure names the step (`step 2 click: no target ...`) and the same facts land in the report file. Drop those two commands into GitHub, GitLab, Forgejo, or Bitbucket: [CI](docs/ci.md).
 
 Give an agent the same engine over MCP:
 
