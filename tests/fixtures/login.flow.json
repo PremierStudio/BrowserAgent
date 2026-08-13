@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "name": "login",
+  "origin": "https://example.com",
+  "steps": [
+    {
+      "action": "navigate",
+      "url": "https://example.com/login",
+      "expectText": "Username"
+    },
+    {
+      "action": "type",
+      "name": "Username",
+      "text": "tomsmith"
+    },
+    {
+      "action": "click",
+      "name": "Login",
+      "role": "button",
+      "expectText": "Logout"
+    }
+  ]
+}

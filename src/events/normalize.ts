@@ -1,4 +1,5 @@
-import type { ConsoleEvent, DomEvent, NavigationEvent, NetworkEvent } from './types.js'
+import type { WindowLayout } from '../browser/windowLayout.js'
+import type { ConsoleEvent, DomEvent, NavigationEvent, NetworkEvent, ResizeEvent } from './types.js'
 
 /** Builds a normalized console event. */
 export function normalizeConsole(
@@ -27,4 +28,16 @@ export function normalizeDom(kind: DomEvent['kind'], target: string, timestamp: 
 /** Builds a normalized navigation event. */
 export function normalizeNavigation(url: string, timestamp: number): NavigationEvent {
   return { type: 'navigation', timestamp, url }
+}
+
+/** Builds a normalized resize event from the live window layout. */
+export function normalizeResize(layout: WindowLayout, timestamp: number): ResizeEvent {
+  return {
+    type: 'resize',
+    timestamp,
+    width: layout.width,
+    height: layout.height,
+    viewportWidth: layout.viewportWidth,
+    viewportHeight: layout.viewportHeight,
+  }
 }

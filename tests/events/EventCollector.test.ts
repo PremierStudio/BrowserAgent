@@ -120,7 +120,34 @@ describe('EventCollector', () => {
     source.emit('requestfailed', 'not-an-object')
     source.emit('framenavigated', 'not-an-object')
     source.emit('dommutated', 'not-an-object')
+    source.emit('resized', 'not-an-object')
+    source.emit('resized', {})
     expect(buffer.all()).toEqual([])
+  })
+
+  it('collects resize events from a live window layout', () => {
+    const source = makeSource()
+    const buffer = new EventBuffer(10)
+    const collector = new EventCollector(source, buffer, () => 7)
+    collector.start()
+    source.emit('resized', {
+      x: 0,
+      y: 40,
+      width: 1600,
+      height: 900,
+      viewportWidth: 1580,
+      viewportHeight: 840,
+    })
+    expect(buffer.all()).toEqual([
+      {
+        type: 'resize',
+        timestamp: 7,
+        width: 1600,
+        height: 900,
+        viewportWidth: 1580,
+        viewportHeight: 840,
+      },
+    ])
   })
 
   it('does not duplicate subscriptions when start() is called twice', () => {

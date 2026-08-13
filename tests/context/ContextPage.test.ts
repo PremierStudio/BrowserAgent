@@ -40,6 +40,117 @@ describe('PuppeteerContextPage', () => {
     expect(result.pageState).toEqual({ url: '', title: '' })
   })
 
+  it('observe reports a user resize and clears a locked viewport', async () => {
+    const first = {
+      url: 'https://example.com/',
+      title: 'Home',
+      x: 0,
+      y: 40,
+      width: 1280,
+      height: 1366,
+      viewportWidth: 1278,
+      viewportHeight: 1300,
+    }
+    let current = first
+    const methods: string[] = []
+    const page: PageLike = {
+      ...makeMockPage(),
+      evaluate: async () => current,
+      cdp: async (_session, method) => {
+        methods.push(method)
+        if (method === 'DOM.resolveNode') {
+          return { object: { objectId: 'obj-1' } }
+        }
+        return {}
+      },
+    }
+    const context = new PuppeteerContextPage(page)
+    const baseline = await context.observe()
+    expect(baseline.pageState.resized).toBe(false)
+    expect(baseline.pageState.layout).toEqual({
+      x: 0,
+      y: 40,
+      width: 1280,
+      height: 1366,
+      viewportWidth: 1278,
+      viewportHeight: 1300,
+    })
+    expect(methods.includes('Emulation.clearDeviceMetricsOverride')).toBe(false)
+    current = { ...first, width: 1600, x: 200 }
+    const next = await context.observe()
+    expect(next.pageState.resized).toBe(true)
+    expect(next.pageState.layout?.width).toBe(1600)
+    expect(methods.includes('Emulation.clearDeviceMetricsOverride')).toBe(true)
+  })
+
+  it('noteResize follows a live window drag without snapping back', async () => {
+    const methods: string[] = []
+    const page: PageLike = {
+      ...makeMockPage(),
+      cdp: async (_session, method) => {
+        methods.push(method)
+        return {}
+      },
+    }
+    const context = new PuppeteerContextPage(page)
+    await context.noteResize({
+      x: 0,
+      y: 40,
+      width: 1280,
+      height: 1366,
+      viewportWidth: 1278,
+      viewportHeight: 1300,
+    })
+    expect(methods).toEqual([])
+    await context.noteResize({
+      x: 1280,
+      y: 40,
+      width: 1280,
+      height: 1366,
+      viewportWidth: 1278,
+      viewportHeight: 1300,
+    })
+    expect(methods).toEqual(['Emulation.clearDeviceMetricsOverride'])
+    await context.noteResize(null)
+    expect(methods).toEqual(['Emulation.clearDeviceMetricsOverride'])
+  })
+
+  it('noteResize restarts the quiet period after a real resize', async () => {
+    const page = makeMockPage()
+    let now = 0
+    let polls = 0
+    const context = new PuppeteerContextPage(page, {
+      clock: () => now,
+      quietPeriod: 40,
+      timeout: 100,
+      sleep: async (ms) => {
+        polls += 1
+        now += ms
+      },
+    })
+    await context.noteResize({
+      x: 0,
+      y: 40,
+      width: 1280,
+      height: 1366,
+      viewportWidth: 1278,
+      viewportHeight: 1300,
+    })
+    await context.waitForEventsAfterAction()
+    expect(polls).toBe(0)
+    await context.noteResize({
+      x: 1280,
+      y: 40,
+      width: 1280,
+      height: 1366,
+      viewportWidth: 1278,
+      viewportHeight: 1300,
+    })
+    await context.waitForEventsAfterAction()
+    expect(polls).toBe(2)
+    expect(now).toBe(40)
+  })
+
   it('getElementByUid resolves an element by uid', async () => {
     const page = makeMockPage()
     const context = new PuppeteerContextPage(page)
@@ -156,7 +267,7 @@ describe('PuppeteerContextPage', () => {
     await expect(context.press('Enter')).resolves.toBeUndefined()
     await expect(context.navigate('https://example.com')).resolves.toBeUndefined()
     expect(methods.filter((method) => method === 'DOM.resolveNode')).toHaveLength(5)
-    expect(methods.filter((method) => method === 'Runtime.callFunctionOn')).toHaveLength(5)
+    expect(methods.filter((method) => method === 'Runtime.callFunctionOn')).toHaveLength(8)
     expect(keys).toEqual(['Enter'])
     expect(gotos).toEqual(['https://example.com'])
   })

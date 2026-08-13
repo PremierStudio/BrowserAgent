@@ -120,6 +120,37 @@ describe('verify', () => {
     })
   })
 
+  it('matches textContains case-insensitively and through icon prefixes', () => {
+    const shop: SnapshotNode = {
+      uid: 'root',
+      role: 'document',
+      name: 'Shop',
+      children: [
+        { uid: 'h', role: 'heading', name: 'FEATURES ITEMS' },
+        { uid: 'add', role: 'link', name: ' Add to cart' },
+      ],
+    }
+    expect(verify(shop, { kind: 'textContains', expected: 'Features Items' })).toEqual({
+      pass: true,
+      evidence: 'text contains "Features Items"',
+    })
+    expect(verify(shop, { kind: 'textContains', expected: 'add to cart' })).toEqual({
+      pass: true,
+      evidence: 'text contains "add to cart"',
+    })
+  })
+
+  it('fails textContains when the expected label folds to empty', () => {
+    expect(verify(tree, { kind: 'textContains', expected: '' })).toEqual({
+      pass: false,
+      evidence: 'text does not contain ""',
+    })
+    expect(verify(tree, { kind: 'textContains', expected: '' })).toEqual({
+      pass: false,
+      evidence: 'text does not contain ""',
+    })
+  })
+
   it('fails field assertions when the uid is missing', () => {
     expect(verify(tree, { kind: 'role', uid: 'nope', expected: 'button' })).toEqual({
       pass: false,

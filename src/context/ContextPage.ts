@@ -1,3 +1,5 @@
+import { INSTALL_RESIZE_LISTENER } from '../browser/resizeBridge.js'
+import { parseWindowLayout, WindowLayoutTracker } from '../browser/windowLayout.js'
 import type { SnapshotNode } from '../snapshot/a11ySnapshot.js'
 import type { Overlay } from '../snapshot/overlay.js'
 import {
@@ -11,7 +13,9 @@ import {
 } from './actOnPage.js'
 import { getPageDialog, DialogTracker } from './dialogPage.js'
 import { emulatePage } from './emulatePage.js'
+import { followWindowIfResized } from './followWindow.js'
 import { observePage } from './observePage.js'
+import type { PageState } from './observeExtras.js'
 import { resolveUid } from './resolveUid.js'
 import { createActionWaiter, memoryMutationSource } from './waitAfterAction.js'
 import type { MutationSource } from '../actions/StabilityWaiter.js'
@@ -21,7 +25,7 @@ export interface ObserveResult {
   snapshot: SnapshotNode
   image: string
   overlay: Overlay
-  pageState: { url: string; title: string }
+  pageState: PageState
 }
 
 /** Optional waiter wiring for tests and the live MutationObserver. */
@@ -31,6 +35,7 @@ interface ContextPageOptions {
   sleep?: (ms: number) => Promise<void>
   quietPeriod?: number
   timeout?: number
+  typeCharMs?: number
 }
 
 /** A narrow contract that hides Puppeteer behind a testable interface. */
@@ -70,10 +75,15 @@ export class PuppeteerContextPage implements ContextPage {
   private readonly waitAfter: { wait: () => Promise<boolean> }
   private readonly mutations: MutationSource & { emit: () => void }
   private readonly dialogs = new DialogTracker()
+  private readonly layout = new WindowLayoutTracker()
+  private readonly typeCharMs: number
+  private readonly sleep: ((ms: number) => Promise<void>) | undefined
 
   constructor(page: PageLike, options: ContextPageOptions = {}) {
     this.page = page
     this.mutations = options.mutations ?? memoryMutationSource()
+    this.typeCharMs = options.typeCharMs ?? 0
+    this.sleep = options.sleep
     this.waitAfter = createActionWaiter(this.mutations, {
       quietPeriod: options.quietPeriod ?? 50,
       timeout: options.timeout ?? 1000,
@@ -101,7 +111,22 @@ export class PuppeteerContextPage implements ContextPage {
   }
 
   async observe(): Promise<ObserveResult> {
-    return observePage(this.page)
+    const result = await observePage(this.page)
+    await this.page.evaluate(INSTALL_RESIZE_LISTENER)
+    const resized = await followWindowIfResized(this.page, this.layout, result.pageState.layout)
+    if (result.pageState.layout === undefined) {
+      return result
+    }
+    return { ...result, pageState: { ...result.pageState, resized } }
+  }
+
+  /** Live headed resize: follow the new window, never snap back. */
+  async noteResize(payload: unknown): Promise<void> {
+    const parsed = parseWindowLayout(payload)
+    const resized = await followWindowIfResized(this.page, this.layout, parsed)
+    if (resized) {
+      this.mutations.emit()
+    }
   }
 
   async emulate(options: unknown): Promise<void> {
@@ -117,7 +142,7 @@ export class PuppeteerContextPage implements ContextPage {
   }
 
   async type(uid: string, text: string): Promise<void> {
-    await typeUid(this.page, uid, text)
+    await typeUid(this.page, uid, text, { charMs: this.typeCharMs, sleep: this.sleep })
   }
 
   async hover(uid: string): Promise<void> {

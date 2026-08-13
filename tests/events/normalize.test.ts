@@ -4,6 +4,7 @@ import {
   normalizeDom,
   normalizeNavigation,
   normalizeNetwork,
+  normalizeResize,
 } from '../../src/events/normalize.js'
 
 describe('normalizeConsole', () => {
@@ -66,6 +67,31 @@ describe('normalizeNavigation', () => {
       type: 'navigation',
       timestamp: 200,
       url: 'https://example.com/page',
+    })
+  })
+})
+
+describe('normalizeResize', () => {
+  it('builds a resize event from the live window layout', () => {
+    expect(
+      normalizeResize(
+        {
+          x: 0,
+          y: 40,
+          width: 1600,
+          height: 900,
+          viewportWidth: 1580,
+          viewportHeight: 840,
+        },
+        12,
+      ),
+    ).toEqual({
+      type: 'resize',
+      timestamp: 12,
+      width: 1600,
+      height: 900,
+      viewportWidth: 1580,
+      viewportHeight: 840,
     })
   })
 })

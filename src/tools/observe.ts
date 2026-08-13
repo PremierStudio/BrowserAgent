@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { definePageTool } from './defineTool.js'
 import { ToolCategory } from './types.js'
 import type { ContextPage } from '../context/ContextPage.js'
+import { outlineFromUnknown } from '../snapshot/outline.js'
 
 function isContextPage(page: unknown): page is ContextPage {
   if (typeof page !== 'object' || page === null) {
@@ -17,14 +18,28 @@ function isContextPage(page: unknown): page is ContextPage {
  */
 export const observeTool = definePageTool({
   name: 'observe',
-  description: 'Observe the current page: a11y snapshot, screenshot, and uid→box overlay.',
+  description:
+    'Read the page. Prefer run_flow with name/role/near. detail=outline for labels, detail=full for a screenshot.',
   category: ToolCategory.Observe,
   readOnly: true,
-  inputSchema: z.object({}),
-  handler: async (_args, _context, page) => {
+  inputSchema: z.object({
+    detail: z.enum(['full', 'outline']).optional(),
+  }),
+  handler: async (args, _context, page) => {
     if (!isContextPage(page)) {
       throw new Error('observe requires a ContextPage')
     }
-    return page.observe()
+    const observed = await page.observe()
+    if (!isRecord(args) || args.detail !== 'outline') {
+      return observed
+    }
+    return {
+      pageState: observed.pageState,
+      outline: outlineFromUnknown(observed.snapshot),
+    }
   },
 })
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}

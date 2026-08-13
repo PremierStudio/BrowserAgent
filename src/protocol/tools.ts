@@ -5,10 +5,20 @@ import {
   type InputRequiredResult,
 } from '@modelcontextprotocol/server'
 import type { ToolDefinition } from '../tools/types.js'
+import { attachTrace, resultBytes, type CallLog } from '../tools/callTrace.js'
+
+/** Grok's stdio client splits NDJSON at 8KiB. tools/list must stay under this. */
+export const STDIO_LINE_BUDGET = 8192
 
 /** The subset of ToolHandler that tool registration needs. */
 export interface ToolCaller {
   call(name: string, args: unknown): Promise<unknown>
+}
+
+/** Optional clock and call log so MCP results carry timing. */
+export interface RegisterToolsOptions {
+  clock?: () => number
+  traces?: CallLog
 }
 
 /**
@@ -50,19 +60,33 @@ export function registerTools(
   server: McpServer,
   tools: ToolDefinition[],
   handler: ToolCaller,
+  options: RegisterToolsOptions = {},
 ): void {
+  const clock = options.clock ?? (() => Date.now())
   for (const tool of tools) {
     server.registerTool(
       tool.name,
       {
-        title: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema,
         annotations: toToolAnnotations(tool.readOnly),
       },
       async (args) => {
+        const started = clock()
         const result = await handler.call(tool.name, args)
-        return toCallToolResult(result)
+        if (isInputRequiredResult(result)) {
+          return toCallToolResult(result)
+        }
+        const durationMs = clock() - started
+        const trace = {
+          tool: tool.name,
+          durationMs,
+          resultBytes: resultBytes(result),
+        }
+        if (options.traces !== undefined) {
+          options.traces.record({ ...trace, timestamp: started })
+        }
+        return toCallToolResult(attachTrace(result, trace))
       },
     )
   }

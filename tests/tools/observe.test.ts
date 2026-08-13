@@ -33,9 +33,8 @@ describe('observeTool', () => {
     expect(observeTool.category).toBe(ToolCategory.Observe)
     expect(observeTool.readOnly).toBe(true)
     expect(observeTool.experimental).toBe(false)
-    expect(observeTool.description).toBe(
-      'Observe the current page: a11y snapshot, screenshot, and uid→box overlay.',
-    )
+    expect(observeTool.description).toMatch(/outline/i)
+    expect(observeTool.description).toMatch(/run_flow/i)
   })
 
   it('has a zod input schema', () => {
@@ -50,6 +49,33 @@ describe('observeTool', () => {
       image: 'data:image/png;base64,abc',
       overlay: {},
       pageState: { url: '', title: '' },
+    })
+  })
+
+  it('returns a compact outline without screenshot when detail is outline', async () => {
+    const page = makeContextPage({
+      observe: async () => ({
+        snapshot: {
+          uid: 'root',
+          role: 'RootWebArea',
+          name: 'Home',
+          children: [
+            { uid: 'h', role: 'heading', name: 'Hero' },
+            { uid: 'btn', role: 'button', name: 'Go' },
+          ],
+        },
+        image: 'data:image/png;base64,HUGE',
+        overlay: { btn: { x: 1, y: 2, width: 3, height: 4 } },
+        pageState: { url: 'https://example.com', title: 'Home' },
+      }),
+    })
+    const result = await observeTool.handler({ detail: 'outline' }, { experimental: false, page })
+    expect(result).toEqual({
+      pageState: { url: 'https://example.com', title: 'Home' },
+      outline: [
+        { uid: 'h', role: 'heading', name: 'Hero' },
+        { uid: 'btn', role: 'button', name: 'Go', context: 'Hero' },
+      ],
     })
   })
 

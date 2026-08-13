@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run tests/integration",
+    "showcase": "vitest run tests/integration/chrome.showcase.test.ts",
     "coverage": "vitest run --coverage",
     "mutation": "stryker run stryker.config.ts",
     "survivors": "npm run build:scripts && node dist-scripts/survivors.js",

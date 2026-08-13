@@ -1,12 +1,16 @@
+import { parseWindowLayout, type WindowLayout } from '../browser/windowLayout.js'
 import type { PageLike } from './ContextPage.js'
 
-/** Page URL and document title as observed from the live document. */
+/** Page URL, title, and the live headed window when the page reports it. */
 export interface PageState {
   url: string
   title: string
+  layout?: WindowLayout
+  resized?: boolean
 }
 
-const READ_PAGE_STATE = '({ url: location.href, title: document.title })'
+const READ_PAGE_STATE =
+  '({ url: location.href, title: document.title, x: screenX, y: screenY, width: outerWidth, height: outerHeight, viewportWidth: innerWidth, viewportHeight: innerHeight })'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -51,13 +55,17 @@ export async function enableAccessibility(page: PageLike): Promise<void> {
   await page.cdp('page', 'Accessibility.enable')
 }
 
-/** Reads the live document URL and title via page.evaluate. */
+/** Reads the live document URL, title, and window layout via page.evaluate. */
 export async function readPageState(page: PageLike): Promise<PageState> {
   const result = await page.evaluate(READ_PAGE_STATE)
-  if (isPageState(result)) {
-    return result
+  if (!isPageState(result)) {
+    return { url: '', title: '' }
   }
-  return { url: '', title: '' }
+  const layout = parseWindowLayout(result)
+  if (layout === undefined) {
+    return { url: result.url, title: result.title }
+  }
+  return { url: result.url, title: result.title, layout }
 }
 
 /**

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  HUMAN_TYPE_MS,
   clickUid,
   hoverUid,
   navigateTo,
   pressKey,
   scrollUid,
   selectUid,
+  typeCharMs,
   typeUid,
 } from '../../src/context/actOnPage.js'
 import type { PageLike } from '../../src/context/ContextPage.js'
@@ -53,6 +55,20 @@ function recordingPage(): PageLike & {
   }
 }
 
+describe('typeCharMs', () => {
+  it('is snappy out of the box and instant only when forced headless', () => {
+    expect(HUMAN_TYPE_MS).toBe(28)
+    expect(typeCharMs({})).toBe(HUMAN_TYPE_MS)
+    expect(typeCharMs({ BROWSER_AGENT_HEADED: '0' })).toBe(0)
+    expect(typeCharMs({ BROWSER_AGENT_HEADED: '1' })).toBe(HUMAN_TYPE_MS)
+    expect(typeCharMs({ BROWSER_AGENT_TYPE_MS: '15' })).toBe(15)
+    expect(typeCharMs({ BROWSER_AGENT_TYPE_MS: '0' })).toBe(0)
+    expect(typeCharMs({ BROWSER_AGENT_HEADED: '1', BROWSER_AGENT_TYPE_MS: '0' })).toBe(0)
+    expect(typeCharMs({ BROWSER_AGENT_TYPE_MS: '-1' })).toBe(HUMAN_TYPE_MS)
+    expect(typeCharMs({ BROWSER_AGENT_HEADED: '0', BROWSER_AGENT_TYPE_MS: 'nope' })).toBe(0)
+  })
+})
+
 describe('actOnPage', () => {
   it('click resolves the uid and calls Runtime.callFunctionOn', async () => {
     const page = recordingPage()
@@ -63,18 +79,71 @@ describe('actOnPage', () => {
       params: { backendNodeId: 42 },
     })
     const call = page.cdpCalls.find((c) => c.method === 'Runtime.callFunctionOn')
-    expect(call?.params).toEqual({
-      objectId: 'obj-1',
-      functionDeclaration: 'function() { this.click(); }',
-    })
+    const fn = JSON.stringify(call?.params)
+    expect(fn).toMatch(/obj-1/)
+    expect(fn).toMatch(/data-ba-hud/)
+    expect(fn).toMatch(/this\.click\(\)/)
+    expect(fn).toMatch(/getBoundingClientRect/)
   })
 
-  it('type focuses the node and inserts text', async () => {
+  it('type focuses, then inserts each character, then commits change', async () => {
     const page = recordingPage()
     await typeUid(page, 'loader-1_42', 'hi')
     expect(page.cdpCalls.some((c) => c.method === 'DOM.resolveNode')).toBe(true)
-    expect(page.cdpCalls.some((c) => c.method === 'Runtime.callFunctionOn')).toBe(true)
-    expect(JSON.stringify(page.cdpCalls)).toMatch(/hi/)
+    const fns = page.cdpCalls
+      .filter((c) => c.method === 'Runtime.callFunctionOn')
+      .map((c) => JSON.stringify(c.params))
+    expect(fns).toHaveLength(4)
+    expect(fns[0]).toMatch(/data-ba-hud/)
+    expect(fns[0]).toMatch(/this\.focus\(\)/)
+    expect(fns[0]).not.toMatch(/insertText/)
+    expect(fns[1]).toMatch(/insertText/)
+    expect(fns[1]).toMatch(/data:\\"h\\"/)
+    expect(fns[2]).toMatch(/insertText/)
+    expect(fns[2]).toMatch(/data:\\"i\\"/)
+    expect(fns[3]).toMatch(/change/)
+    expect(fns.some((fn) => fn.includes('getOwnPropertyDescriptor'))).toBe(true)
+  })
+
+  it('pauses between characters when charMs is set', async () => {
+    const page = recordingPage()
+    const sleeps: number[] = []
+    await typeUid(page, 'loader-1_42', 'ab', {
+      charMs: 7,
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    })
+    expect(sleeps).toEqual([7, 7])
+  })
+
+  it('skips the pause when sleep is omitted', async () => {
+    const page = recordingPage()
+    await expect(typeUid(page, 'loader-1_42', 'ab', { charMs: 7 })).resolves.toBeUndefined()
+    expect(page.cdpCalls.filter((c) => c.method === 'Runtime.callFunctionOn')).toHaveLength(4)
+  })
+
+  it('does not pause when charMs is zero even if sleep is provided', async () => {
+    const page = recordingPage()
+    let slept = 0
+    await typeUid(page, 'loader-1_42', 'ab', {
+      charMs: 0,
+      sleep: async () => {
+        slept += 1
+      },
+    })
+    expect(slept).toBe(0)
+  })
+
+  it('focuses and commits when the text is empty', async () => {
+    const page = recordingPage()
+    await typeUid(page, 'loader-1_42', '')
+    const fns = page.cdpCalls
+      .filter((c) => c.method === 'Runtime.callFunctionOn')
+      .map((c) => JSON.stringify(c.params))
+    expect(fns).toHaveLength(2)
+    expect(fns[0]).toMatch(/focus/)
+    expect(fns[1]).toMatch(/change/)
   })
 
   it('hover, scroll, and select dispatch through callFunctionOn', async () => {
@@ -88,6 +157,7 @@ describe('actOnPage', () => {
     expect(fns.some((fn) => fn.includes('mouseover') || fn.includes('hover'))).toBe(true)
     expect(fns.some((fn) => fn.includes('scrollBy') || fn.includes('scroll'))).toBe(true)
     expect(fns.some((fn) => fn.includes('opt'))).toBe(true)
+    expect(fns.every((fn) => fn.includes('data-ba-hud'))).toBe(true)
   })
 
   it('press uses keyboardPress and navigate uses goto', async () => {
@@ -96,6 +166,8 @@ describe('actOnPage', () => {
     await navigateTo(page, 'https://example.com')
     expect(page.keys).toEqual(['Enter'])
     expect(page.gotos).toEqual(['https://example.com'])
+    expect(JSON.stringify(page.evals)).toMatch(/data-ba-hud/)
+    expect(JSON.stringify(page.evals)).toMatch(/Enter/)
   })
 
   it('throws on an invalid uid', async () => {

@@ -63,8 +63,48 @@ describe('readPageState', () => {
     const state = await readPageState(page)
     expect(state).toEqual({ url: 'https://example.com/', title: 'Example' })
     expect(page.evalCalls).toHaveLength(1)
-    expect(page.evalCalls[0]?.fn).toBe('({ url: location.href, title: document.title })')
+    expect(page.evalCalls[0]?.fn).toContain('location.href')
+    expect(page.evalCalls[0]?.fn).toContain('document.title')
+    expect(page.evalCalls[0]?.fn).toContain('screenX')
+    expect(page.evalCalls[0]?.fn).toContain('outerWidth')
+    expect(page.evalCalls[0]?.fn).toContain('innerWidth')
     expect(page.evalCalls[0]?.arg).toBeUndefined()
+  })
+
+  it('attaches layout when the evaluate also returns window bounds', async () => {
+    const page = fakePage({
+      evaluateResult: {
+        url: 'https://example.com/',
+        title: 'Example',
+        x: 0,
+        y: 40,
+        width: 1280,
+        height: 1366,
+        viewportWidth: 1278,
+        viewportHeight: 1300,
+      },
+    })
+    expect(await readPageState(page)).toEqual({
+      url: 'https://example.com/',
+      title: 'Example',
+      layout: {
+        x: 0,
+        y: 40,
+        width: 1280,
+        height: 1366,
+        viewportWidth: 1278,
+        viewportHeight: 1300,
+      },
+    })
+  })
+
+  it('keeps url and title when layout fields are incomplete', async () => {
+    const page = fakePage({
+      evaluateResult: { url: 'https://example.com/', title: 'Example', x: 0 },
+    })
+    const state = await readPageState(page)
+    expect(state).toEqual({ url: 'https://example.com/', title: 'Example' })
+    expect(Object.hasOwn(state, 'layout')).toBe(false)
   })
 
   it('accepts empty-string url and title because they are still strings', async () => {

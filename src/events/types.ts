@@ -30,5 +30,15 @@ export interface NavigationEvent {
   url: string
 }
 
+/** A headed window resize or move captured from the live page. */
+export interface ResizeEvent {
+  type: 'resize'
+  timestamp: number
+  width: number
+  height: number
+  viewportWidth: number
+  viewportHeight: number
+}
+
 /** A single browser event, discriminated by type. */
-export type BrowserEvent = ConsoleEvent | NetworkEvent | DomEvent | NavigationEvent
+export type BrowserEvent = ConsoleEvent | NetworkEvent | DomEvent | NavigationEvent | ResizeEvent

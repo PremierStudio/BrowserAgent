@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { McpServer, InMemoryTransport } from '@modelcontextprotocol/server'
+import { CallLog } from '../../src/tools/callTrace.js'
 import {
   initServer,
   registerTools,
@@ -106,7 +107,6 @@ describe('registerTools', () => {
     expect(listed.tools).toEqual([
       expect.objectContaining({
         name: 'ping',
-        title: 'ping',
         description: 'Pings',
         annotations: { readOnlyHint: true },
         inputSchema: expect.objectContaining({
@@ -139,7 +139,6 @@ describe('registerTools', () => {
     expect(listed.tools).toEqual([
       expect.objectContaining({
         name: 'ping',
-        title: 'ping',
         description: 'Pings',
         annotations: { readOnlyHint: true },
       }),
@@ -164,8 +163,53 @@ describe('registerTools', () => {
       await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } }),
     )
     expect(called).toBe(1)
-    expect(result.structuredContent).toEqual({ value: 'ping-result' })
+    expect(result.structuredContent).toMatchObject({
+      value: 'ping-result',
+      trace: {
+        tool: 'ping',
+        durationMs: expect.any(Number),
+        resultBytes: expect.any(Number),
+      },
+    })
     expect(server.toolInputSchemaJson('ping')).toBeDefined()
+    await client.close()
+  })
+
+  it('stamps durationMs and resultBytes using the injected clock and log', async () => {
+    const server = new McpServer(
+      { name: 'test', version: '0.0.1' },
+      { capabilities: { tools: {} } },
+    )
+    const traces = new CallLog(8)
+    let now = 100
+    registerTools(
+      server,
+      [makeTool({ name: 'ping' })],
+      { call: async () => ({ ok: true }) },
+      {
+        traces,
+        clock: () => {
+          now += 25
+          return now
+        },
+      },
+    )
+    const client = await connectClient(server)
+    const result = resultOf(
+      await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } }),
+    )
+    expect(result.structuredContent).toMatchObject({
+      ok: true,
+      trace: { tool: 'ping', durationMs: 25, resultBytes: JSON.stringify({ ok: true }).length },
+    })
+    expect(traces.all()).toEqual([
+      {
+        tool: 'ping',
+        durationMs: 25,
+        resultBytes: JSON.stringify({ ok: true }).length,
+        timestamp: 125,
+      },
+    ])
     await client.close()
   })
 })

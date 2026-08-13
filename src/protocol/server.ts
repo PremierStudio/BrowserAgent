@@ -11,6 +11,8 @@ import { buildConfirmTool } from './confirmTool.js'
 import { createEventResource } from './eventResource.js'
 import { createReplayResource } from './replayResource.js'
 import { buildTaskTools } from './taskTools.js'
+import { CallLog } from '../tools/callTrace.js'
+import { buildListCallsTool } from '../tools/listCalls.js'
 import { registerTools } from './tools.js'
 
 /** The implementation info for the MCP server. */
@@ -48,7 +50,12 @@ export function createServer(
 ): McpServer {
   const server = new McpServer(info, options)
   const handler = new ToolHandler()
-  const tools: ToolDefinition[] = [...(wiring.tools ?? []), buildConfirmTool()]
+  const traces = new CallLog(100)
+  const tools: ToolDefinition[] = [
+    ...(wiring.tools ?? []),
+    buildConfirmTool(),
+    buildListCallsTool(traces),
+  ]
   if (wiring.tasks !== undefined) {
     tools.push(...buildTaskTools(wiring.tasks.store, wiring.tasks.runner))
   }
@@ -63,7 +70,7 @@ export function createServer(
       }),
     )
   }
-  registerTools(server, tools, handler)
+  registerTools(server, tools, handler, { traces })
   if (wiring.events !== undefined) {
     createEventResource(server, wiring.events, 'browser://events')
   }

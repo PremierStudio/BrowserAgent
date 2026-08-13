@@ -1,3 +1,13 @@
+import {
+  clickHudDeclaration,
+  hoverHudDeclaration,
+  pressHudEvaluate,
+  scrollHudDeclaration,
+  selectHudDeclaration,
+  typeHudCharDeclaration,
+  typeHudCommitDeclaration,
+  typeHudFocusDeclaration,
+} from '../browser/actionHud.js'
 import type { PageLike } from './ContextPage.js'
 import { parseUid } from '../uid.js'
 
@@ -32,27 +42,52 @@ async function callOn(
 /** Clicks the element identified by uid via CDP resolve + callFunctionOn. */
 export async function clickUid(page: PageLike, uid: string): Promise<void> {
   const objectId = await resolveObjectId(page, uid)
-  await callOn(page, objectId, 'function() { this.click(); }')
+  await callOn(page, objectId, clickHudDeclaration())
 }
 
-/** Types text into the element identified by uid. */
-export async function typeUid(page: PageLike, uid: string, text: string): Promise<void> {
+/** Snappy per-key delay in headed mode. Readable, not hunt-and-peck. */
+export const HUMAN_TYPE_MS = 28
+
+export type TypeOptions = {
+  charMs?: number
+  sleep?: (ms: number) => Promise<void>
+}
+
+/** Visible window types like a person. Headless dumps instantly. */
+export function typeCharMs(env: Record<string, string | undefined>): number {
+  const parsed = Number(env.BROWSER_AGENT_TYPE_MS)
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return parsed
+  }
+  if (env.BROWSER_AGENT_HEADED === '0') {
+    return 0
+  }
+  return HUMAN_TYPE_MS
+}
+
+/** Types text into the element identified by uid, one character at a time. */
+export async function typeUid(
+  page: PageLike,
+  uid: string,
+  text: string,
+  options: TypeOptions = {},
+): Promise<void> {
   const objectId = await resolveObjectId(page, uid)
-  await callOn(
-    page,
-    objectId,
-    `function() { this.focus(); this.value = (this.value || '') + ${JSON.stringify(text)}; this.dispatchEvent(new Event('input', { bubbles: true })); }`,
-  )
+  await callOn(page, objectId, typeHudFocusDeclaration())
+  const charMs = options.charMs ?? 0
+  for (const character of text) {
+    await callOn(page, objectId, typeHudCharDeclaration(character))
+    if (charMs > 0 && options.sleep !== undefined) {
+      await options.sleep(charMs)
+    }
+  }
+  await callOn(page, objectId, typeHudCommitDeclaration())
 }
 
 /** Hovers the element identified by uid. */
 export async function hoverUid(page: PageLike, uid: string): Promise<void> {
   const objectId = await resolveObjectId(page, uid)
-  await callOn(
-    page,
-    objectId,
-    'function() { this.dispatchEvent(new MouseEvent("mouseover", { bubbles: true })); }',
-  )
+  await callOn(page, objectId, hoverHudDeclaration())
 }
 
 /** Scrolls within the element identified by uid. */
@@ -63,21 +98,18 @@ export async function scrollUid(
   dy: number,
 ): Promise<void> {
   const objectId = await resolveObjectId(page, uid)
-  await callOn(page, objectId, `function() { this.scrollBy(${dx}, ${dy}); }`)
+  await callOn(page, objectId, scrollHudDeclaration(dx, dy))
 }
 
 /** Selects a value on the element identified by uid. */
 export async function selectUid(page: PageLike, uid: string, value: string): Promise<void> {
   const objectId = await resolveObjectId(page, uid)
-  await callOn(
-    page,
-    objectId,
-    `function() { this.value = ${JSON.stringify(value)}; this.dispatchEvent(new Event('change', { bubbles: true })); }`,
-  )
+  await callOn(page, objectId, selectHudDeclaration(value))
 }
 
 /** Presses a key on the page. */
 export async function pressKey(page: PageLike, key: string): Promise<void> {
+  await page.evaluate(pressHudEvaluate(key))
   await page.keyboardPress(key)
 }
 

@@ -42,12 +42,24 @@ function fakeSource(): EventSource & { emit: (event: string, payload: unknown) =
 }
 
 describe('createRuntime', () => {
-  it('creates a store, runner, event buffer, and action log', () => {
+  it('creates a store, runner, event buffer, and action log', async () => {
     const runtime = createRuntime()
     expect(runtime.store.list()).toEqual([])
     expect(runtime.events.all()).toEqual([])
     expect(runtime.actions.all()).toEqual([])
     expect(runtime.page).toBeUndefined()
+    await expect(runtime.controller.status()).resolves.toMatchObject({ open: false })
+    const opened = await runtime.controller.open()
+    expect(opened.open).toBe(true)
+    expect(opened.mine?.id).toBe('runtime')
+    expect(opened.mine?.headed).toBe(false)
+    await expect(runtime.controller.reap()).resolves.toMatchObject({ open: true })
+    await expect(runtime.controller.close()).resolves.toMatchObject({ open: false })
+    const tabbed = await runtime.controller.newTab('https://example.com')
+    expect(tabbed.open).toBe(true)
+    expect(tabbed.mine?.headed).toBe(false)
+    await expect(runtime.controller.switchTab('t1')).resolves.toMatchObject({ open: true })
+    await expect(runtime.controller.closeTab('t1')).resolves.toMatchObject({ open: true })
   })
 
   it('holds the provided page', () => {

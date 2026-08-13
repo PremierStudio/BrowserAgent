@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server'
 import type { StdioServerHandle } from '@modelcontextprotocol/server/stdio'
 import { buildIntentTools } from '../intent/intentTools.js'
 import { createRuntime, type RuntimeOptions } from '../session/runtime.js'
+import { buildBrowserDeskTools } from '../tools/browserDeskTools.js'
 import { buildTools } from './buildTools.js'
 import { createHttpHandler } from './http.js'
 import { createServer } from './server.js'
@@ -29,7 +30,7 @@ export function createDefaultServer(options: DefaultServerOptions = {}): McpServ
   return createServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
     {
-      tools: [...buildTools(), ...buildIntentTools()],
+      tools: [...buildBrowserDeskTools(runtime.controller), ...buildTools(), ...buildIntentTools()],
       events: runtime.events,
       tasks: { store: runtime.store, runner: runtime.runner },
       actions: runtime.actions,

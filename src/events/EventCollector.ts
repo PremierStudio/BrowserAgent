@@ -1,9 +1,11 @@
+import { parseWindowLayout } from '../browser/windowLayout.js'
 import type { EventBuffer } from './EventBuffer.js'
 import {
   normalizeConsole,
   normalizeDom,
   normalizeNavigation,
   normalizeNetwork,
+  normalizeResize,
 } from './normalize.js'
 import type { ConsoleEvent, DomEvent } from './types.js'
 
@@ -83,6 +85,7 @@ export class EventCollector {
     this.source.on('requestfailed', (payload) => this.onRequestFailed(payload))
     this.source.on('framenavigated', (payload) => this.onNavigated(payload))
     this.source.on('dommutated', (payload) => this.onDomMutated(payload))
+    this.source.on('resized', (payload) => this.onResized(payload))
   }
 
   private onConsole(payload: unknown): void {
@@ -127,5 +130,13 @@ export class EventCollector {
     const kind: DomEvent['kind'] =
       data.kind === 'removed' || data.kind === 'changed' ? data.kind : 'added'
     this.buffer.push(normalizeDom(kind, data.target ?? '', this.clock()))
+  }
+
+  private onResized(payload: unknown): void {
+    const layout = parseWindowLayout(payload)
+    if (layout === undefined) {
+      return
+    }
+    this.buffer.push(normalizeResize(layout, this.clock()))
   }
 }

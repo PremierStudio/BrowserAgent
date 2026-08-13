@@ -6,6 +6,8 @@ import {
   createDefaultServer,
   type Serve,
 } from '../../src/protocol/cli.js'
+import { STDIO_LINE_BUDGET } from '../../src/protocol/tools.js'
+import { createLazyContextPage } from '../../src/context/lazyPage.js'
 import type { ContextPage } from '../../src/context/ContextPage.js'
 
 function fakePage(): ContextPage {
@@ -123,6 +125,13 @@ function serverInfoFromSse(body: string): unknown {
 }
 
 const DEFAULT_TOOL_NAMES = [
+  'browser_status',
+  'browser_open',
+  'browser_close',
+  'browser_reap',
+  'browser_new_tab',
+  'browser_close_tab',
+  'browser_switch_tab',
   'observe',
   'click',
   'type',
@@ -132,10 +141,12 @@ const DEFAULT_TOOL_NAMES = [
   'press',
   'navigate',
   'watch_until',
+  'compile_flow',
   'run_flow',
   'verify',
   'explain',
   'confirm_action',
+  'list_calls',
   'get_task',
   'list_tasks',
   'cancel_task',
@@ -202,12 +213,38 @@ describe('buildCliMain', () => {
     const listed = resultOf(
       await client.request(2, 'tools/call', { name: 'list_tasks', arguments: {} }),
     )
-    expect(listed.structuredContent).toEqual({ value: [] })
+    expect(listed.structuredContent).toMatchObject({ value: [] })
+    expect(listed.structuredContent).toMatchObject({
+      trace: {
+        tool: 'list_tasks',
+        durationMs: expect.any(Number),
+        resultBytes: expect.any(Number),
+      },
+    })
     await client.close()
   })
 })
 
 describe('createDefaultServer', () => {
+  it('does not open chrome until a page tool is called', async () => {
+    let opens = 0
+    const server = createDefaultServer({
+      page: createLazyContextPage(async () => {
+        opens += 1
+        return fakePage()
+      }),
+    })
+    const client = await connectClient(server)
+    expect(opens).toBe(0)
+    await client.request(2, 'tools/list', {})
+    expect(opens).toBe(0)
+    await client.request(3, 'tools/call', { name: 'list_tasks', arguments: {} })
+    expect(opens).toBe(0)
+    await client.request(4, 'tools/call', { name: 'observe', arguments: {} })
+    expect(opens).toBe(1)
+    await client.close()
+  })
+
   it('accepts a page and still exposes observe', async () => {
     const server = createDefaultServer({ page: fakePage() })
     expect(server.toolInputSchemaJson('observe')).toBeDefined()
@@ -232,6 +269,7 @@ describe('createDefaultServer', () => {
     expect(server.toolInputSchemaJson('verify')).toBeDefined()
     expect(server.toolInputSchemaJson('explain')).toBeDefined()
     expect(server.toolInputSchemaJson('run_flow')).toBeDefined()
+    expect(server.toolInputSchemaJson('compile_flow')).toBeDefined()
     const client = await connectClient(server)
     expect(client.init.serverInfo).toEqual({ name: 'browser-agent', version: '0.0.1' })
     expect(listedToolNames(await client.request(2, 'tools/list', {}))).toEqual(DEFAULT_TOOL_NAMES)
@@ -243,6 +281,17 @@ describe('createDefaultServer', () => {
         mimeType: 'text/html;profile=mcp-app',
       },
     ])
+    await client.close()
+  })
+
+  it('keeps the tools/list JSON-RPC line under Grok stdio 8KiB', async () => {
+    const server = createDefaultServer()
+    const client = await connectClient(server)
+    const listed = resultOf(await client.request(2, 'tools/list', {}))
+    const wire = JSON.stringify({ jsonrpc: '2.0', id: 2, result: listed })
+    expect(wire.length).toBeLessThan(STDIO_LINE_BUDGET)
+    expect(wire.indexOf('confirm_action')).toBeLessThan(STDIO_LINE_BUDGET)
+    expect(wire.includes('"title"')).toBe(false)
     await client.close()
   })
 })

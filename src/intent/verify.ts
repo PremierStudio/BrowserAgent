@@ -1,4 +1,5 @@
 import type { SnapshotNode } from '../snapshot/a11ySnapshot.js'
+import { foldLabel } from '../label.js'
 
 /** An assertion that verify() evaluates against a snapshot. */
 export type Assertion =
@@ -31,7 +32,14 @@ function findNode(node: SnapshotNode, uid: string): SnapshotNode | undefined {
 }
 
 function containsText(node: SnapshotNode, expected: string): boolean {
-  if (node.name.includes(expected) || (node.value !== undefined && node.value.includes(expected))) {
+  const want = foldLabel(expected)
+  if (want === '') {
+    return false
+  }
+  if (foldLabel(node.name).includes(want)) {
+    return true
+  }
+  if (node.value !== undefined && foldLabel(node.value).includes(want)) {
     return true
   }
   if (node.children === undefined) {

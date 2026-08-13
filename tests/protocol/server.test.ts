@@ -135,7 +135,10 @@ describe('createServer', () => {
     const called = resultOf(
       await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } }),
     )
-    expect(called.structuredContent).toEqual({ value: 'pong' })
+    expect(called.structuredContent).toMatchObject({
+      value: 'pong',
+      trace: { tool: 'ping', durationMs: expect.any(Number), resultBytes: expect.any(Number) },
+    })
     await client.close()
   })
 
@@ -262,6 +265,7 @@ describe('createServer', () => {
       { tools: buildTools(), page: fakePage(), events, actions, tasks: { store, runner } },
     )
     expect(server.toolInputSchemaJson('observe')).toBeDefined()
+    expect(server.toolInputSchemaJson('list_calls')).toBeDefined()
     expect(server.toolInputSchemaJson('confirm_action')).toBeDefined()
     expect(server.toolInputSchemaJson('get_task')).toBeDefined()
     const client = await connectClient(server)

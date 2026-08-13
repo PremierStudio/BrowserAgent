@@ -51,9 +51,10 @@ describe('diffExplainTarget', () => {
 })
 
 describe('buildIntentTools', () => {
-  it('returns watch_until, run_flow, verify, and explain in order', () => {
+  it('returns watch_until, compile_flow, run_flow, verify, and explain in order', () => {
     expect(buildIntentTools().map((tool) => tool.name)).toEqual([
       'watch_until',
+      'compile_flow',
       'run_flow',
       'verify',
       'explain',
@@ -65,7 +66,8 @@ describe('buildIntentTools', () => {
     expect(tools.watch_until?.description).toBe(
       'Poll the page until a condition matches or the timeout elapses.',
     )
-    expect(tools.run_flow?.description).toBe('Run a sequence of page actions as one flow.')
+    expect(tools.run_flow?.description).toMatch(/name/i)
+    expect(tools.run_flow?.description).toMatch(/re-resolves/i)
     expect(tools.verify?.description).toBe(
       'Assert a condition against the current snapshot and return evidence.',
     )
@@ -73,6 +75,16 @@ describe('buildIntentTools', () => {
       'Explain a uid, region, or diff with a summary and annotation.',
     )
     expect(tools.watch_until?.readOnly).toBe(false)
+    expect(tools.compile_flow?.readOnly).toBe(true)
+    expect(tools.compile_flow?.description).toMatch(/unique/i)
+    expect(tools.compile_flow?.inputSchema.safeParse({ steps: [] }).success).toBe(true)
+    expect(
+      tools.compile_flow?.inputSchema.safeParse({
+        steps: [{ action: 'click', name: 'Login' }],
+        requireExpect: false,
+      }).success,
+    ).toBe(true)
+    expect(tools.compile_flow?.inputSchema.safeParse({}).success).toBe(false)
     expect(tools.run_flow?.readOnly).toBe(false)
     expect(tools.verify?.readOnly).toBe(true)
     expect(tools.explain?.readOnly).toBe(true)
@@ -109,6 +121,18 @@ describe('buildIntentTools', () => {
     expect(
       tools.run_flow?.inputSchema.safeParse({ steps: [{ action: 'click', uid: '1' }] }).success,
     ).toBe(true)
+    expect(
+      tools.run_flow?.inputSchema.safeParse({
+        steps: [{ action: 'click', name: 'Login', near: 'Password', role: 'button' }],
+      }).success,
+    ).toBe(true)
+    expect(
+      tools.run_flow?.inputSchema.safeParse({
+        steps: [{ action: 'check', expectUrl: '/secure', expectText: 'Logout' }],
+      }).success,
+    ).toBe(true)
+    expect(tools.run_flow?.description).toMatch(/uniquely/i)
+    expect(tools.run_flow?.description).toMatch(/expectUrl/i)
     expect(tools.run_flow?.inputSchema.safeParse({ steps: [{ action: 1 }] }).success).toBe(false)
     expect(tools.run_flow?.inputSchema.safeParse({ steps: [{}] }).success).toBe(false)
   })
@@ -121,12 +145,51 @@ describe('buildIntentTools', () => {
     expect(result).toEqual({ matched: true, reason: 'condition met' })
   })
 
-  it('run_flow executes steps on the page', async () => {
-    const result = await handlerFor('run_flow')?.(
-      { steps: [{ action: 'click', uid: 'btn-1' }] },
+  it('compile_flow binds unique names on the live outline', async () => {
+    const result = await handlerFor('compile_flow')?.(
+      { steps: [{ action: 'click', name: 'Submit', expectUrl: '/' }] },
       { experimental: false, page: recordPage() },
     )
-    expect(result).toEqual({ ok: true, steps: 1 })
+    expect(result).toEqual({
+      ok: true,
+      bound: 1,
+      steps: [{ action: 'click', name: 'Submit', expectUrl: '/', uid: 'btn-1' }],
+    })
+  })
+
+  it('compile_flow requires expects on click unless requireExpect is false', async () => {
+    const ctx = { experimental: false, page: recordPage() }
+    const refused = await handlerFor('compile_flow')?.(
+      { steps: [{ action: 'click', name: 'Submit' }] },
+      ctx,
+    )
+    expect(refused).toEqual({
+      ok: false,
+      error: 'action click requires expectUrl or expectText',
+    })
+    const allowed = await handlerFor('compile_flow')?.(
+      { steps: [{ action: 'click', name: 'Submit' }], requireExpect: false },
+      ctx,
+    )
+    expect(allowed).toMatchObject({ ok: true, bound: 1 })
+  })
+
+  it('run_flow executes steps on the page', async () => {
+    const previous = process.env.BROWSER_AGENT_PACE_MS
+    process.env.BROWSER_AGENT_PACE_MS = '0'
+    try {
+      const result = await handlerFor('run_flow')?.(
+        { steps: [{ action: 'click', uid: 'btn-1' }] },
+        { experimental: false, page: recordPage() },
+      )
+      expect(result).toEqual({ ok: true, steps: 1 })
+    } finally {
+      if (previous === undefined) {
+        delete process.env.BROWSER_AGENT_PACE_MS
+      } else {
+        process.env.BROWSER_AGENT_PACE_MS = previous
+      }
+    }
   })
 
   it('verify asserts against the current snapshot', async () => {
@@ -167,6 +230,12 @@ describe('buildIntentTools', () => {
     await expect(
       handlerFor('run_flow')?.({ steps: [] }, { experimental: false, page: { observe: 'nope' } }),
     ).rejects.toThrow(/requires a page/i)
+    await expect(
+      handlerFor('compile_flow')?.(
+        { steps: [] },
+        { experimental: false, page: { observe: 'nope' } },
+      ),
+    ).rejects.toThrow(/requires a page/i)
   })
 
   it('explain describes a diff target', async () => {
@@ -200,6 +269,14 @@ describe('buildIntentTools', () => {
     await expect(handlerFor('run_flow')?.({ steps: 'nope' }, ctx)).rejects.toThrow(/invalid args/i)
     await expect(handlerFor('run_flow')?.(null, ctx)).rejects.toThrow(/invalid args/i)
     await expect(handlerFor('run_flow')?.(1, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('compile_flow')?.({}, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(handlerFor('compile_flow')?.({ steps: 'nope' }, ctx)).rejects.toThrow(
+      /invalid args/i,
+    )
+    await expect(handlerFor('compile_flow')?.(null, ctx)).rejects.toThrow(/invalid args/i)
+    await expect(
+      handlerFor('compile_flow')?.({ steps: [], requireExpect: 'yes' }, ctx),
+    ).rejects.toThrow(/invalid args/i)
     await expect(handlerFor('verify')?.({}, ctx)).rejects.toThrow(/invalid args/i)
     await expect(handlerFor('verify')?.(null, ctx)).rejects.toThrow(/invalid args/i)
     await expect(handlerFor('verify')?.(1, ctx)).rejects.toThrow(/invalid args/i)

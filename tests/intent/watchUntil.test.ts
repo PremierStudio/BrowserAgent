@@ -39,6 +39,22 @@ describe('matchesWatch', () => {
     expect(matchesWatch(tree, events, { kind: 'event', value: 'console' })).toBe(true)
     expect(matchesWatch(tree, events, { kind: 'event', value: 'boom' })).toBe(true)
     expect(matchesWatch(tree, events, { kind: 'event', value: 'network' })).toBe(false)
+    expect(
+      matchesWatch(
+        tree,
+        [
+          {
+            type: 'resize',
+            timestamp: 1,
+            width: 1600,
+            height: 900,
+            viewportWidth: 1580,
+            viewportHeight: 840,
+          },
+        ],
+        { kind: 'event', value: 'resize' },
+      ),
+    ).toBe(true)
   })
 
   it('matches a network url and a dom target', () => {

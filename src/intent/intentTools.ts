@@ -5,7 +5,10 @@ import type { ToolDefinition } from '../tools/types.js'
 import type { ContextPage } from '../context/ContextPage.js'
 import type { DiffResult } from '../diff/diff.js'
 import { explain, type ExplainTarget } from './explain.js'
-import { runFlow, type FlowStep } from './runFlow.js'
+import { compileFlow } from './compileFlow.js'
+import { outlineFromUnknown } from '../snapshot/outline.js'
+import { runFlow, runFlowToolOptions, type FlowStep } from './runFlow.js'
+import { defaultClock, defaultSleep } from './watchUntil.js'
 import { verify, type Assertion } from './verify.js'
 import { watchUntil, type WatchCondition } from './watchUntil.js'
 import type { BrowserEvent } from '../events/types.js'
@@ -48,6 +51,18 @@ function isFlowArgs(args: unknown): args is { steps: FlowStep[] } {
   return typeof args === 'object' && args !== null && 'steps' in args && Array.isArray(args.steps)
 }
 
+function isCompileArgs(args: unknown): args is { steps: FlowStep[]; requireExpect?: boolean } {
+  if (!isFlowArgs(args)) {
+    return false
+  }
+  if (!('requireExpect' in args)) {
+    return true
+  }
+  return typeof args.requireExpect === 'boolean'
+}
+
+const flowStepSchema = z.object({ action: z.string() }).passthrough()
+
 function isVerifyArgs(args: unknown): args is Assertion {
   return typeof args === 'object' && args !== null && 'kind' in args
 }
@@ -63,7 +78,7 @@ function isDiffResult(value: unknown): value is DiffResult {
   return 'added' in value && 'removed' in value && 'changed' in value
 }
 
-/** The M6 intent tools: watch_until, run_flow, verify, explain. */
+/** The M6 intent tools: watch_until, compile_flow, run_flow, verify, explain. */
 export function buildIntentTools(): ToolDefinition[] {
   return [
     definePageTool({
@@ -89,28 +104,42 @@ export function buildIntentTools(): ToolDefinition[] {
       },
     }),
     definePageTool({
+      name: 'compile_flow',
+      description:
+        'Compile a run_flow against the live outline. Fills uids. A name must bind uniquely or this returns candidates. Does not act.',
+      category: ToolCategory.Intent,
+      readOnly: true,
+      inputSchema: z.object({
+        steps: z.array(flowStepSchema),
+        requireExpect: z.boolean().optional(),
+      }),
+      handler: async (args, _context, page) => {
+        if (!isCompileArgs(args)) {
+          throw new Error('invalid args')
+        }
+        const observed = await requirePage(page).observe()
+        return compileFlow(outlineFromUnknown(observed.snapshot), args.steps, {
+          requireExpect: args.requireExpect !== false,
+        })
+      },
+    }),
+    definePageTool({
       name: 'run_flow',
-      description: 'Run a sequence of page actions as one flow.',
+      description:
+        'Run a named sequence. Prefer name (role/near) over uid. A name must bind uniquely. Re-resolves after click/navigate. Optional expectUrl/expectText poll. Call once instead of observe-per-page.',
       category: ToolCategory.Intent,
       inputSchema: z.object({
-        steps: z.array(
-          z.object({
-            action: z.string(),
-            uid: z.string().optional(),
-            text: z.string().optional(),
-            dx: z.number().optional(),
-            dy: z.number().optional(),
-            value: z.string().optional(),
-            key: z.string().optional(),
-            url: z.string().optional(),
-          }),
-        ),
+        steps: z.array(flowStepSchema),
       }),
       handler: async (args, _context, page) => {
         if (!isFlowArgs(args)) {
           throw new Error('invalid args')
         }
-        return runFlow(requirePage(page), args.steps)
+        return runFlow(
+          requirePage(page),
+          args.steps,
+          runFlowToolOptions(process.env, defaultSleep, defaultClock),
+        )
       },
     }),
     definePageTool({
