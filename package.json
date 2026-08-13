@@ -2,7 +2,7 @@
   "name": "browser-agent",
   "version": "0.0.1",
   "private": true,
-  "description": "An agent walks the path once. You keep the JSON. CI replays it at zero tokens.",
+  "description": "Turn one agent walkthrough into a CI test that runs with no AI.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

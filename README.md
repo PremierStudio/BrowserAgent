@@ -3,8 +3,7 @@
 </p>
 
 <p align="center">
-  An agent walks the path once. You keep the JSON. CI replays it at zero tokens.
-  When a step breaks, the agent files a bug or updates the flow.
+  Turn one agent walkthrough into a CI test that runs with no AI.
 </p>
 
 <p align="center">
@@ -32,21 +31,20 @@
 
 ## What it is
 
-An agent can drive a real browser, by the names a person sees, and turn that walk into an automated test.
+You can already ask an agent to click through a checkout. That works **once**. The next morning you want the same path on every commit, without paying for another model call, and without a test that dies the first time a designer changes a CSS id.
 
-1. **Author once.** The agent clicks Login, types Username, waits for the next page. Binds are labels, not `#txt_visit_date`.
-2. **Keep the file.** Versioned JSON. No uids. `compile` checks it. `run` plays it.
-3. **Replay for free.** CI runs the same engine. No model. No MCP. Zero tokens.
-4. **When it breaks.** The failure names the step and the candidates. An agent can tell a product bug (file a ticket) from a renamed button (update the step). The suite stays cheap.
+Today that usually means one of two dead ends:
 
-That is the product. Headed or headless. Live agent or CLI. Same engine.
+- **Chat browsers (most MCP tools).** The agent looks at the page, clicks, and talks to you. Tomorrow you run the agent again. Every replay spends tokens. The path lives in a transcript, not in CI.
+- **Recorders (Playwright codegen, Selenium IDE, and friends).** You get `#txt_visit_date` and `.btn-primary`. The next rename breaks the test. The log does not say "Login is gone." It says a selector missed. A person has to debug CSS.
 
-| You can        | How                                                                              |
-| -------------- | -------------------------------------------------------------------------------- |
-| See the page   | `observe` returns the a11y snapshot, screenshot, and pixel overlay together      |
-| Act by name    | `run_flow` binds `name` / `role` / `near`. Ambiguous labels stop with candidates |
-| Wait and check | `watch_until`, `verify`, `explain`, `expectUrl` / `expectText`                   |
-| Keep the path  | Versioned JSON. No uids on disk. `compile` then `run`                            |
+BrowserAgent is the middle path.
+
+The agent drives a real Chrome window and refers to controls the way a person would: "Username", "Login", "the Add to cart near Sauce Labs Backpack." Those **visible names** are what get saved, as ordinary JSON. CI then opens Chrome and follows the same names. No language model is in that run. No MCP session is required. The bill is the same as any other headless test.
+
+When a step fails, the report is in the same language: "step 2 click Login: two matches" or "no control named Login." An agent (or a person) can tell the difference between **the product broke** (open a ticket) and **the button is now called Sign in** (change one line in the file). The suite stays cheap because only the broken step needs a model, and only if you want one.
+
+That is what this repo is for: author with an agent, keep a file, replay without one. Headed while you watch, headless in CI. Same engine.
 
 ### Modes
 
