@@ -41,6 +41,23 @@ describe('observeTool', () => {
     expect(observeTool.inputSchema).toBeInstanceOf(z.ZodType)
   })
 
+  it('returns the full observe result when args are not a record', async () => {
+    const page = makeContextPage()
+    const expected = {
+      snapshot: { uid: 'loader-1_1', role: 'generic', name: '' },
+      image: 'data:image/png;base64,abc',
+      overlay: {},
+      pageState: { url: '', title: '' },
+    }
+    await expect(observeTool.handler(null, { experimental: false, page })).resolves.toEqual(
+      expected,
+    )
+    await expect(observeTool.handler(undefined, { experimental: false, page })).resolves.toEqual(
+      expected,
+    )
+    await expect(observeTool.handler(1, { experimental: false, page })).resolves.toEqual(expected)
+  })
+
   it('returns the observe result from the context page', async () => {
     const page = makeContextPage()
     const result = await observeTool.handler({}, { experimental: false, page })

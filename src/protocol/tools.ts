@@ -56,13 +56,50 @@ function isStructured(value: unknown): value is Record<string, unknown> {
  * result into an MCP CallToolResult with structuredContent plus a text
  * representation.
  */
+function nowMs(): number {
+  return Date.now()
+}
+
+function resolveClock(clock: (() => number) | undefined): () => number {
+  if (clock === undefined) {
+    return nowMs
+  }
+  return clock
+}
+
+/**
+ * HITL results skip the call log and the content wrapper so the host can
+ * run elicitation. Everything else is timed and traced.
+ */
+export function finalizeToolResult(
+  name: string,
+  result: unknown,
+  started: number,
+  clock: () => number,
+  traces: CallLog | undefined,
+): CallToolResult | InputRequiredResult {
+  if (!isInputRequiredResult(result)) {
+    const durationMs = clock() - started
+    const trace = {
+      tool: name,
+      durationMs,
+      resultBytes: resultBytes(result),
+    }
+    if (traces !== undefined) {
+      traces.record({ ...trace, timestamp: started })
+    }
+    return toCallToolResult(attachTrace(result, trace))
+  }
+  return toCallToolResult(result)
+}
+
 export function registerTools(
   server: McpServer,
   tools: ToolDefinition[],
   handler: ToolCaller,
   options: RegisterToolsOptions = {},
 ): void {
-  const clock = options.clock ?? (() => Date.now())
+  const clock = resolveClock(options.clock)
   for (const tool of tools) {
     server.registerTool(
       tool.name,
@@ -74,19 +111,7 @@ export function registerTools(
       async (args) => {
         const started = clock()
         const result = await handler.call(tool.name, args)
-        if (isInputRequiredResult(result)) {
-          return toCallToolResult(result)
-        }
-        const durationMs = clock() - started
-        const trace = {
-          tool: tool.name,
-          durationMs,
-          resultBytes: resultBytes(result),
-        }
-        if (options.traces !== undefined) {
-          options.traces.record({ ...trace, timestamp: started })
-        }
-        return toCallToolResult(attachTrace(result, trace))
+        return finalizeToolResult(tool.name, result, started, clock, options.traces)
       },
     )
   }

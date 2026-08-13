@@ -76,13 +76,13 @@ export class PuppeteerContextPage implements ContextPage {
   private readonly mutations: MutationSource & { emit: () => void }
   private readonly dialogs = new DialogTracker()
   private readonly layout = new WindowLayoutTracker()
-  private readonly typeCharMs: number
+  private readonly typeCharMs: number | undefined
   private readonly sleep: ((ms: number) => Promise<void>) | undefined
 
   constructor(page: PageLike, options: ContextPageOptions = {}) {
     this.page = page
     this.mutations = options.mutations ?? memoryMutationSource()
-    this.typeCharMs = options.typeCharMs ?? 0
+    this.typeCharMs = options.typeCharMs
     this.sleep = options.sleep
     this.waitAfter = createActionWaiter(this.mutations, {
       quietPeriod: options.quietPeriod ?? 50,
@@ -142,7 +142,8 @@ export class PuppeteerContextPage implements ContextPage {
   }
 
   async type(uid: string, text: string): Promise<void> {
-    await typeUid(this.page, uid, text, { charMs: this.typeCharMs, sleep: this.sleep })
+    const typeOptions = { charMs: this.typeCharMs, sleep: this.sleep }
+    await typeUid(this.page, uid, text, typeOptions)
   }
 
   async hover(uid: string): Promise<void> {

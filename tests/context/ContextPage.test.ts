@@ -240,6 +240,31 @@ describe('PuppeteerContextPage', () => {
     expect(methods).toContain('Emulation.setCPUThrottlingRate')
   })
 
+  it('types with the injected char delay and sleep', async () => {
+    const sleeps: number[] = []
+    const page = makeMockPage()
+    const context = new PuppeteerContextPage(page, {
+      typeCharMs: 12,
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    })
+    await context.type('loader-1_1', 'hi')
+    expect(sleeps).toEqual([12, 12])
+  })
+
+  it('does not pause typing when typeCharMs is left at the default zero', async () => {
+    const sleeps: number[] = []
+    const page = makeMockPage()
+    const context = new PuppeteerContextPage(page, {
+      sleep: async (ms) => {
+        sleeps.push(ms)
+      },
+    })
+    await context.type('loader-1_1', 'hi')
+    expect(sleeps).toEqual([])
+  })
+
   it('action methods resolve', async () => {
     const methods: string[] = []
     const gotos: string[] = []

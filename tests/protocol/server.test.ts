@@ -8,7 +8,7 @@ import type { ContextPage } from '../../src/context/ContextPage.js'
 import { EventBuffer } from '../../src/events/EventBuffer.js'
 import { TaskRunner } from '../../src/tasks/TaskRunner.js'
 import { TaskStore } from '../../src/tasks/TaskStore.js'
-import { ToolCategory } from '../../src/tools/types.js'
+import { ToolCategory, type ToolDefinition } from '../../src/tools/types.js'
 
 function fakePage(calls: string[] = []): ContextPage {
   return {
@@ -160,6 +160,28 @@ describe('createServer', () => {
         text: JSON.stringify([{ type: 'console', timestamp: 1, level: 'log', text: 'hello' }]),
       },
     ])
+    await client.close()
+  })
+
+  it('records each tools/call into list_calls', async () => {
+    const tool: ToolDefinition = {
+      name: 'ping',
+      description: 'Pings',
+      category: 'observe',
+      experimental: false,
+      readOnly: true,
+      inputSchema: z.object({ value: z.string() }),
+      handler: async () => 'pong',
+    }
+    const server = createServer({ name: 'browser-agent', version: '0.0.1' }, { tools: [tool] })
+    const client = await connectClient(server)
+    await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } })
+    const listed = resultOf(
+      await client.request(3, 'tools/call', { name: 'list_calls', arguments: {} }),
+    )
+    expect(listed.structuredContent).toMatchObject({
+      calls: [{ tool: 'ping' }],
+    })
     await client.close()
   })
 

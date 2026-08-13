@@ -153,6 +153,16 @@ describe('runFlow', () => {
     expect(observes).toBe(0)
   })
 
+  it('names a compile-time observe failure after the first real step', async () => {
+    const page = recordPage()
+    page.observe = async () => {
+      throw new Error('snapshot failed')
+    }
+    await expect(runFlow(page, [{ action: 'click', name: 'Login' }])).rejects.toThrow(
+      /^step 1 click: snapshot failed$/,
+    )
+  })
+
   it('wraps a non-Error throw from the page with the step number', async () => {
     const page = recordPage()
     page.observe = async () => ({

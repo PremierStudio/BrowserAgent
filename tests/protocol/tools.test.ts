@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { McpServer, InMemoryTransport } from '@modelcontextprotocol/server'
 import { CallLog } from '../../src/tools/callTrace.js'
+import { confirmGate } from '../../src/protocol/mrtr.js'
 import {
+  finalizeToolResult,
   initServer,
   registerTools,
   toToolAnnotations,
@@ -93,6 +95,38 @@ describe('toToolAnnotations', () => {
   })
 })
 
+describe('finalizeToolResult', () => {
+  it('returns an input_required result without wrapping or tracing it', () => {
+    const traces = new CallLog(8)
+    const gate = confirmGate('delete this', 'delete this')
+    const finalized = finalizeToolResult('confirm_action', gate, 10, () => 20, traces)
+    expect(finalized).toBe(gate)
+    expect(finalized).toMatchObject({ resultType: 'input_required' })
+    expect(isRecord(finalized) && 'content' in finalized).toBe(false)
+    expect(isRecord(finalized) && 'trace' in finalized).toBe(false)
+    expect(traces.all()).toEqual([])
+  })
+
+  it('times and records a normal result', () => {
+    const traces = new CallLog(8)
+    const finalized = finalizeToolResult('ping', { ok: true }, 10, () => 25, traces)
+    expect(finalized).toMatchObject({
+      structuredContent: {
+        ok: true,
+        trace: { tool: 'ping', durationMs: 15 },
+      },
+    })
+    expect(traces.all()).toEqual([
+      {
+        tool: 'ping',
+        durationMs: 15,
+        resultBytes: JSON.stringify({ ok: true }).length,
+        timestamp: 10,
+      },
+    ])
+  })
+})
+
 describe('registerTools', () => {
   it('registers each tool on the server', async () => {
     const server = new McpServer(
@@ -172,6 +206,31 @@ describe('registerTools', () => {
       },
     })
     expect(server.toolInputSchemaJson('ping')).toBeDefined()
+    await client.close()
+  })
+
+  it('uses Date.now when no clock is injected and still records a finite duration', async () => {
+    const server = new McpServer(
+      { name: 'test', version: '0.0.1' },
+      { capabilities: { tools: {} } },
+    )
+    registerTools(server, [makeTool({ name: 'ping' })], makeCaller())
+    const client = await connectClient(server)
+    const result = resultOf(
+      await client.request(2, 'tools/call', { name: 'ping', arguments: { value: 'x' } }),
+    )
+    const structured = result.structuredContent
+    expect(isRecord(structured)).toBe(true)
+    if (!isRecord(structured)) {
+      throw new Error('expected structuredContent')
+    }
+    expect(isRecord(structured.trace)).toBe(true)
+    if (!isRecord(structured.trace)) {
+      throw new Error('expected trace')
+    }
+    expect(typeof structured.trace.durationMs).toBe('number')
+    expect(Number.isFinite(structured.trace.durationMs)).toBe(true)
+    expect(structured.trace.durationMs).toBeGreaterThanOrEqual(0)
     await client.close()
   })
 

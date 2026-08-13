@@ -13,7 +13,7 @@ import { createReplayResource } from './replayResource.js'
 import { buildTaskTools } from './taskTools.js'
 import { CallLog } from '../tools/callTrace.js'
 import { buildListCallsTool } from '../tools/listCalls.js'
-import { registerTools } from './tools.js'
+import { registerTools, type RegisterToolsOptions } from './tools.js'
 
 /** The implementation info for the MCP server. */
 export interface ServerInfo {
@@ -70,7 +70,8 @@ export function createServer(
       }),
     )
   }
-  registerTools(server, tools, handler, { traces })
+  const registerOptions: RegisterToolsOptions = { traces }
+  registerTools(server, tools, handler, registerOptions)
   if (wiring.events !== undefined) {
     createEventResource(server, wiring.events, 'browser://events')
   }

@@ -30,7 +30,7 @@ export const observeTool = definePageTool({
       throw new Error('observe requires a ContextPage')
     }
     const observed = await page.observe()
-    if (!isRecord(args) || args.detail !== 'outline') {
+    if (requestedDetail(args) !== 'outline') {
       return observed
     }
     return {
@@ -40,6 +40,9 @@ export const observeTool = definePageTool({
   },
 })
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+function requestedDetail(args: unknown): unknown {
+  if (typeof args !== 'object' || args === null || !('detail' in args)) {
+    return undefined
+  }
+  return args.detail
 }

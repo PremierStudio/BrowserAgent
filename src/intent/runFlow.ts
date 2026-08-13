@@ -280,12 +280,9 @@ export async function runFlow(
       planned = compiled.planned
       outline = compiled.outline
     } catch (error) {
-      let failed: FlowStep = { action: 'compile' }
       for (const step of steps) {
-        failed = step
-        break
+        throwStepError(0, step, error)
       }
-      throwStepError(0, failed, error)
     }
   }
   for (const [index, step] of planned.entries()) {

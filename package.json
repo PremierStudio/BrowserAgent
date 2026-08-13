@@ -2,7 +2,7 @@
   "name": "browser-agent",
   "version": "0.0.1",
   "private": true,
-  "description": "Unified, event-driven, visually-rich MCP browser-automation server on Puppeteer",
+  "description": "Browser engine: bind pages by visible name, save a flow, replay it with no model. MCP is one authoring door.",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"

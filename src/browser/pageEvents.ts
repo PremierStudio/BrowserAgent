@@ -9,48 +9,50 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isThunk(value: unknown): value is () => unknown {
-  return typeof value === 'function'
-}
-
 function isDomPayload(value: unknown): value is { kind: string; target: string } {
   return isRecord(value) && typeof value.kind === 'string' && typeof value.target === 'string'
 }
 
+function readThunkString(value: typeof Function.prototype): string {
+  try {
+    const result = value()
+    return typeof result === 'string' ? result : ''
+  } catch {
+    return ''
+  }
+}
+
+function readThunkNumber(value: typeof Function.prototype): number {
+  try {
+    const result = value()
+    return typeof result === 'number' ? result : 0
+  } catch {
+    return 0
+  }
+}
+
 function readString(record: Record<string, unknown>, key: string): string {
   const value = record[key]
-  if (typeof value === 'string') {
-    return value
-  }
-  if (isThunk(value)) {
-    try {
-      const result = value()
-      if (typeof result === 'string') {
-        return result
-      }
-    } catch {
+  switch (typeof value) {
+    case 'string':
+      return value
+    case 'function':
+      return readThunkString(value)
+    default:
       return ''
-    }
   }
-  return ''
 }
 
 function readNumber(record: Record<string, unknown>, key: string): number {
   const value = record[key]
-  if (typeof value === 'number') {
-    return value
-  }
-  if (isThunk(value)) {
-    try {
-      const result = value()
-      if (typeof result === 'number') {
-        return result
-      }
-    } catch {
+  switch (typeof value) {
+    case 'number':
+      return value
+    case 'function':
+      return readThunkNumber(value)
+    default:
       return 0
-    }
   }
-  return 0
 }
 
 function normalizeConsole(payload: unknown): { type: string; text: string } | null {

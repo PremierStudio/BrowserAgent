@@ -227,6 +227,8 @@ describe('adaptPageEvents', () => {
       const page = makePage()
       const received = listen(adaptPageEvents(page), 'requestfailed')
       page.emit('requestfailed', null)
+      page.emit('requestfailed', 'https://example.com/lost')
+      page.emit('requestfailed', 1)
       expect(received).toEqual([])
     })
   })
@@ -258,6 +260,8 @@ describe('adaptPageEvents', () => {
       const page = makePage()
       const received = listen(adaptPageEvents(page), 'framenavigated')
       page.emit('framenavigated', undefined)
+      page.emit('framenavigated', 'https://example.com/next')
+      page.emit('framenavigated', 1)
       expect(received).toEqual([])
     })
   })
@@ -310,6 +314,15 @@ describe('adaptPageEvents', () => {
         'framenavigated',
         'dommutated',
       ])
+    })
+
+    it('swallows a throwing EventSource listener so live Chrome cannot crash stdio', () => {
+      const page = makePage()
+      const source = adaptPageEvents(page)
+      source.on('console', () => {
+        throw new Error('listener exploded')
+      })
+      expect(() => page.emit('console', { type: 'log', text: 'hi' })).not.toThrow()
     })
 
     it('does not subscribe the page to unknown EventSource names', () => {

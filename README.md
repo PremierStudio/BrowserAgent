@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  A unified, event-driven, visually-rich <strong>MCP browser engine</strong> on Puppeteer.
-  An agent authors a path by visible name. CI replays the saved JSON with no model.
+  A <strong>browser engine</strong>. See a page. Bind a control by the name a person sees.
+  Save the path as JSON. Replay it in CI with no model and no MCP.
 </p>
 
 <p align="center">
@@ -14,28 +14,47 @@
   <a href="https://github.com/PremierStudio/BrowserAgent"><img alt="Mutation score" src="https://img.shields.io/badge/mutation-100%25-success.svg"/></a>
   <a href="https://github.com/PremierStudio/BrowserAgent"><img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0-blue.svg?logo=typescript&logoColor=white"/></a>
   <a href="https://pptr.dev"><img alt="Puppeteer" src="https://img.shields.io/badge/Puppeteer-25-green.svg?logo=puppeteer&logoColor=white"/></a>
-  <a href="https://modelcontextprotocol.io"><img alt="MCP" src="https://img.shields.io/badge/MCP-2026--07--28-orange.svg"/></a>
+  <a href="https://modelcontextprotocol.io"><img alt="MCP" src="https://img.shields.io/badge/MCP-authoring-orange.svg"/></a>
   <a href="https://nodejs.org"><img alt="Node" src="https://img.shields.io/badge/Node-%3E%3D20.19-339933.svg?logo=nodejs&logoColor=white"/></a>
   <a href="https://github.com/PremierStudio/BrowserAgent/graphs/contributors"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"/></a>
 </p>
 
 <p align="center">
-  <a href="#thesis">Thesis</a> · <a href="#why">Why</a> · <a href="#architecture">Architecture</a> · <a href="#getting-started">Getting Started</a> · <a href="#saved-flows">Saved flows</a> · <a href="#engineering">Engineering</a> · <a href="#roadmap">Product</a>
+  <a href="#what">What this is</a> · <a href="#thesis">Thesis</a> · <a href="#why">Why</a> · <a href="#architecture">Architecture</a> · <a href="#getting-started">Getting Started</a> · <a href="#saved-flows">Saved flows</a> · <a href="#engineering">Engineering</a> · <a href="#roadmap">Product</a>
 </p>
+
+---
+
+<a id="what"></a>
+
+## What this is
+
+BrowserAgent is the hands. It owns Chrome, the accessibility tree, the pixel overlay, named binding, and the runner that plays a saved path.
+
+An agent can drive it over MCP. That is useful. It is not the product. The product is: **author a path once, keep a file, run the file forever.**
+
+| This repo                                                       | Not this repo                                            |
+| --------------------------------------------------------------- | -------------------------------------------------------- |
+| Headed Chrome desk, cursor HUD, human-paced typing              | Product catalogs, testers, Linear gates (PremierQuality) |
+| Bind `name` / `role` / `near` (unique, or stop with candidates) | Video traces (BugTrace)                                  |
+| Unified `observe` (a11y snapshot + screenshot + overlay)        | Customer capture widgets                                 |
+| Durable flow JSON (no uids on disk)                             | Recorders that emit `#txt_visit_date`                    |
+| CLI `compile` / `run` with no LLM                               | Chat-only browsers that bill tokens every replay         |
+| MCP stdio / HTTP as the **authoring** door                      |                                                          |
+
+PremierQuality and BugTrace can call this later. They do not live here.
 
 ---
 
 ## Highlights
 
-- **One model, not two.** `observe` returns the a11y snapshot and the pixel overlay in a single call.
+- **An engine, not a chat plugin.** MCP is one socket. The same code compiles and runs a saved flow from the CLI.
+- **Author once, replay forever.** Walk the site by label. Write JSON. CI runs `compile` then `run` and spends zero tokens.
 - **Names, not CSS.** `run_flow` binds `name` / `role` / `near`, re-resolves after click or navigate, and stops with candidates when a label is ambiguous.
-- **Author once, replay with no AI.** A durable JSON flow has no uids. `compile` checks it. `run` plays it. CI spends zero tokens.
+- **One model, not two.** `observe` returns the a11y snapshot and the pixel overlay in a single call.
 - **Headed by default.** Left-snap Chrome, live cursor HUD, paced typing. Headless is instant.
-- **Diffs, not dumps.** The diff engine returns what changed, with fingerprint-based uid rebinding.
-- **Events, not polling.** Console, network, DOM, navigation, and resize are collected and pushed.
+- **Diffs and events, not dumps.** Changes since last observe, plus console, network, DOM, navigation, and resize.
 - **Strict TDD at 100/100.** Coverage and mutation are CI gates. TypeScript only.
-
-This repo is the **browser engine**. It is not PremierQuality (catalogs, people, release gates) and not BugTrace (video recordings).
 
 ---
 
@@ -43,22 +62,26 @@ This repo is the **browser engine**. It is not PremierQuality (catalogs, people,
 
 ## The thesis
 
-Most browser integrations split "read the page" from "act on the page." One world is text, the other is pixels. The model re-reads every turn and guesses which box is which control.
+Most browser stacks split "read the page" from "act on the page." One world is text, the other is pixels. The model re-reads every turn and guesses which box is which control.
 
-BrowserAgent builds one object: the semantic layer and the visual layer together. The model can watch, act, and explain. After a path is compiled into named steps, the engine can replay it without a model.
+BrowserAgent builds one object: the semantic layer and the visual layer together. An agent can watch, act, and explain. After a path is named and saved, the engine replays it without a model. That second life is the point. MCP is how the agent holds the mouse while it learns the path.
 
 ---
 
 <a id="why"></a>
 
-## Why another browser MCP server?
+## Why this, not another browser MCP?
 
-It is not a fork of `chrome-devtools-mcp`. It borrows proven patterns (stable uids keyed by `loaderId_backendNodeId`, a `ContextPage` over Puppeteer, act-then-wait, token-optimized formatters) and rebuilds them around a different shape:
+You can attach it to Claude, Grok, or anything that speaks MCP. That is the authoring surface, not the thing you ship to CI.
 
-- **Unified observe.** One call returns the a11y tree with the pixel overlay.
-- **Named intent.** `run_flow` is one call for a sequence, not observe-per-page.
-- **Durable files.** Saved JSON is names plus expects. Uids die on the next navigation.
-- **Fewer round trips.** The browser and the LLM are the bottlenecks.
+Recorders emit CSS. Other MCP browsers stay in the chat loop and bill tokens every run. This one:
+
+- **Binds intent.** `name` / `role` / `near`, not `#txt_visit_date`.
+- **Compiles.** A name must be unique or you get candidates, not a guess.
+- **Saves a file.** Versioned JSON. No uids. Expects on every page change.
+- **Runs without a model.** `node dist/cli.js run flows/login.json`. Same engine as `run_flow`.
+
+It borrows proven CDP patterns from `chrome-devtools-mcp` (stable uids, `ContextPage`, act-then-wait) and rebuilds them around that split: agent authors, engine executes.
 
 ---
 
@@ -66,55 +89,39 @@ It is not a fork of `chrome-devtools-mcp`. It borrows proven patterns (stable ui
 
 ## Architecture
 
+The engine is the product. CLI and MCP are two clients of the same core.
+
 ```mermaid
 flowchart TB
-    Client[MCP Client / LLM]
+    Agent[Agent over MCP]
     Cli[CLI compile / run]
+    Ci[CI]
 
-    subgraph Protocol["MCP Protocol Layer"]
-        Server[McpServer<br/>tools/list · tools/call · server/discover]
-        Tasks[Tasks fallback<br/>get · list · cancel · wait]
-        Apps[MCP Apps<br/>ui:// replay]
-        Mrtr[MRTR confirm_action]
-        Desk[browser_status · tabs]
-    end
-
-    subgraph Framework["Tool Framework"]
-        Handler[ToolHandler<br/>defineTool · gating · write mutex]
-    end
-
-    subgraph Core["Core Model"]
-        direction LR
+    subgraph Engine["BrowserAgent engine"]
         Observe[observe<br/>snapshot + overlay + outline]
-        Diff[Diff engine<br/>changes + rebinding]
-        Events[Event layer<br/>buffer + collector]
-        Actions[Action layer<br/>log + HUD + act-then-wait]
+        Bind[name / role / near]
         Flow[run_flow · compile_flow · flow file]
+        Desk[headed desk · tabs · HUD]
+        Events[console · network · DOM · nav]
+        Actions[click type hover scroll select press]
     end
 
-    Browser[ContextPage<br/>over Puppeteer / CDP]
+    Chrome[ContextPage over Puppeteer / CDP]
 
-    Client <-->|MCP| Server
+    Agent -->|author a path| Flow
     Cli --> Flow
-    Server --> Tasks
-    Server --> Apps
-    Server --> Mrtr
-    Server --> Desk
-    Server -->|registerTool| Handler
-    Handler -->|read| Observe
-    Handler -->|write| Actions
-    Handler -->|intent| Flow
-    Observe --> Diff
+    Ci --> Cli
+    Flow --> Bind
+    Bind --> Observe
+    Flow --> Actions
+    Actions --> Desk
     Observe --> Events
-    Actions --> Events
-    Actions --> Apps
-    Observe --> Browser
-    Actions --> Browser
-    Flow --> Browser
-    Desk --> Browser
+    Observe --> Chrome
+    Actions --> Chrome
+    Desk --> Chrome
 ```
 
-The protocol layer is a thin MCP bridge. `ToolHandler` gates tools. `ContextPage` hides Puppeteer. Nothing in intent or protocol talks to a raw Page.
+MCP (`tools/list`, `tools/call`, Tasks, Apps, HITL) is a thin protocol layer on top. Nothing in intent talks to a raw Puppeteer Page.
 
 | #   | Piece                                                                      | Milestone |
 | --- | -------------------------------------------------------------------------- | --------- |
@@ -122,10 +129,10 @@ The protocol layer is a thin MCP bridge. `ToolHandler` gates tools. `ContextPage
 | 2   | **Diff engine**: changes since last observe, fingerprint rebind            | **M2**    |
 | 3   | **Events**: console, network, DOM, navigation, resize                      | **M4**    |
 | 4   | **Action log + HUD**: click, type, hover, scroll, select, press, navigate  | **M3**    |
-| 5   | **MCP**: stdio and Streamable HTTP, `server/discover`, annotations         | **M5**    |
-| 6   | **Desk**: `browser_status`, open/close/reap, tabs                          | **M5+**   |
-| 7   | **Intent**: `watch_until`, `compile_flow`, `run_flow`, `verify`, `explain` | **M6**    |
-| 8   | **Saved flows**: versioned JSON, `compile` / `run` with no MCP             | **M6+**   |
+| 5   | **Intent**: `watch_until`, `compile_flow`, `run_flow`, `verify`, `explain` | **M6**    |
+| 6   | **Saved flows**: versioned JSON, `compile` / `run` with no MCP             | **M6+**   |
+| 7   | **MCP**: stdio and Streamable HTTP, `server/discover`, annotations         | **M5**    |
+| 8   | **Desk**: `browser_status`, open/close/reap, tabs                          | **M5+**   |
 | 9   | **MCP Apps replay**: `ui://browser-agent/replay`                           | **M7**    |
 
 ---
@@ -151,9 +158,25 @@ npm install
 npm run build
 ```
 
-### Run the MCP server
+### Replay a saved flow (no model)
 
-`npm start` launches Chrome, attaches events, and serves MCP over stdio. The window is visible by default: one tab, snapped to the left half of the primary work area. If you move or resize it, the server notices (`resize` events plus `pageState.layout` / `pageState.resized` on observe), drops a locked viewport, and keeps the new size. It does not snap the window back.
+This is the product path. `compile` checks the file without opening Chrome. `run` launches Chrome and plays the steps.
+
+```bash
+node dist/cli.js compile tests/fixtures/login.flow.json
+```
+
+```powershell
+# PowerShell, headless replay
+$env:BROWSER_AGENT_HEADED='0'
+node dist/cli.js run tests/fixtures/login.flow.json
+```
+
+A failure names the step: `step 2 click: no target ...`.
+
+### Attach an agent (MCP)
+
+Use this when you want a model to walk a site and author the JSON. `npm start` launches Chrome and serves MCP over stdio. The window is visible by default: one tab, snapped to the left half of the primary work area. If you move or resize it, the server notices (`resize` events plus `pageState.layout` / `pageState.resized` on observe), drops a locked viewport, and keeps the new size. It does not snap the window back.
 
 ```bash
 npm start
@@ -174,21 +197,21 @@ Streamable HTTP (same tool set) on port 3333, or `PORT`:
 npm start -- --http
 ```
 
-Point an MCP client at `node dist/cli.js`. The server exposes `tools/list`, `tools/call`, and `server/discover`.
+Point an MCP client at `node dist/cli.js`. The server exposes `tools/list`, `tools/call`, and `server/discover`. Prefer **one `run_flow`** with `name` / `role` / `near` instead of observe-per-page. When the binds are unique, write the JSON (no uids) and switch to `compile` / `run`. There is no `save_flow` MCP tool. That would blow the 8KiB `tools/list` line budget.
 
 ### Chrome desk
 
-These tools do not need a page tool first. `browser_status` lists this MCP Chrome, peers, orphans, and closed instances. It does not launch Chrome.
+These tools do not need a page tool first. `browser_status` lists this engine's Chrome, peers, orphans, and closed instances. It does not launch Chrome.
 
-| Tool                 | Job                                          |
-| -------------------- | -------------------------------------------- |
-| `browser_status`     | List this instance, peers, orphans, closed   |
-| `browser_open`       | Open this MCP Chrome. Safe when already open |
-| `browser_close`      | Close this Chrome and mark it closed         |
-| `browser_reap`       | Kill leftover Chrome whose MCP agent is gone |
-| `browser_new_tab`    | Open a tab. Optional `url`                   |
-| `browser_switch_tab` | Switch to a tab id from `browser_status`     |
-| `browser_close_tab`  | Close a tab. Refuses to close the last tab   |
+| Tool                 | Job                                              |
+| -------------------- | ------------------------------------------------ |
+| `browser_status`     | List this instance, peers, orphans, closed       |
+| `browser_open`       | Open this Chrome. Safe when already open         |
+| `browser_close`      | Close this Chrome and mark it closed             |
+| `browser_reap`       | Kill leftover Chrome whose agent process is gone |
+| `browser_new_tab`    | Open a tab. Optional `url`                       |
+| `browser_switch_tab` | Switch to a tab id from `browser_status`         |
+| `browser_close_tab`  | Close a tab. Refuses to close the last tab       |
 
 ### Page tools
 
@@ -200,7 +223,7 @@ These tools do not need a page tool first. `browser_status` lists this MCP Chrom
 
 `watch_until`, `compile_flow`, `run_flow`, `verify`, `explain`
 
-Prefer **one `run_flow`** with `name` / `role` / `near` instead of observe-per-page. The server re-observes after click or navigate. A name must bind uniquely or the flow stops with candidates, before any hover or click. Use `near` when labels repeat (demo credentials vs the real Username field). Put `expectUrl` / `expectText` on steps that change the page. Headed mode polls until they match. `action: check` only asserts.
+The engine re-observes after click or navigate. A name must bind uniquely or the flow stops with candidates, before any hover or click. Use `near` when labels repeat (demo credentials vs the real Username field). Put `expectUrl` / `expectText` on steps that change the page. Headed mode polls until they match. `action: check` only asserts.
 
 `compile_flow` is read-only. It binds the current-page prefix and leaves later pages as names. It does not act.
 
@@ -256,20 +279,7 @@ A durable flow is versioned JSON. No uids on disk. Click and navigate must have 
 }
 ```
 
-`compile` checks the file without opening Chrome. `run` launches Chrome (or uses the headed/headless flags) and plays the steps. A failure names the step: `step 2 click: no target ...`.
-
-```bash
-npm run build
-node dist/cli.js compile tests/fixtures/login.flow.json
-```
-
-```powershell
-# PowerShell, headless replay
-$env:BROWSER_AGENT_HEADED='0'
-node dist/cli.js run tests/fixtures/login.flow.json
-```
-
-The authoring loop is: MCP `run_flow` until binds are unique, write the JSON (no uids), `compile`, then `run` in CI. There is no `save_flow` MCP tool. That would blow the 8KiB `tools/list` line budget.
+The authoring loop is: MCP `run_flow` until binds are unique, write the JSON (no uids), `compile`, then `run` in CI.
 
 ### Headed demos
 
@@ -293,15 +303,19 @@ A saved-flow Chrome proof lives in `tests/integration/chrome.flowFile.test.ts` (
 
 ---
 
-### Run the full gate chain
+<a id="engineering"></a>
 
-This is exactly what CI enforces:
+## Engineering: strict TDD with a 100/100 gate
+
+Every module is written test-first (RED, then GREEN, then refactor) and must clear a hard, CI-enforced gate before it is committed:
+
+```text
+typecheck → lint → format → knip → unit tests → coverage (100%) → mutation (100%) → survivor registry
+```
 
 ```bash
 npm run ci
 ```
-
-### Individual gates
 
 | Command                    | What it does                                              |
 | -------------------------- | --------------------------------------------------------- |
@@ -315,6 +329,15 @@ npm run ci
 | `npm run coverage`         | 100% threshold (lines/branches/functions/statements)      |
 | `npm run mutation`         | Stryker, 100% threshold + survivor registry               |
 | `npm run reports`          | coverage + JUnit XML into `reports/`                      |
+
+- **100% coverage** (lines/branches/functions/statements) via Vitest + `@vitest/coverage-v8`.
+- **100% mutation score** via Stryker. Coverage alone is a lie. The only escape is a named entry in `mutation-survivors.json`.
+- **No dead code.** knip runs with zero findings.
+- **TypeScript only, everywhere.** No `.js`/`.mjs`/`.cjs`, including configs and scripts (emitted to `dist-scripts/` via `tsconfig.scripts.json`).
+- **No banned constructs.** `as`, `any`, `!`, `@ts-ignore` / `@ts-nocheck` / `@ts-expect-error`, and `.forEach` are lint errors.
+- **Deterministic tests.** Clocks and timers are injected. No sleeps.
+
+The spec is [`docs/mvp.md`](docs/mvp.md). Amendments in [`docs/decisions.md`](docs/decisions.md) win when they conflict.
 
 ### Software stack
 
@@ -330,30 +353,7 @@ npm run ci
 | Dead-code | [`knip`](https://knip.dev)                                                                   | `^6.32.2`                  |
 | Format    | [`prettier`](https://prettier.io)                                                            | `^3.9.6`                   |
 
----
-
-<a id="engineering"></a>
-
-## Engineering: strict TDD with a 100/100 gate
-
-Every module is written test-first (RED, then GREEN, then refactor) and must clear a hard, CI-enforced gate before it is committed:
-
-```text
-typecheck → lint → format → knip → unit tests → coverage (100%) → mutation (100%) → survivor registry
-```
-
-- **100% coverage** (lines/branches/functions/statements) via Vitest + `@vitest/coverage-v8`.
-- **100% mutation score** via Stryker. Coverage alone is a lie. The only escape is a named entry in `mutation-survivors.json`.
-- **No dead code.** knip runs with zero findings.
-- **TypeScript only, everywhere.** No `.js`/`.mjs`/`.cjs`, including configs and scripts (emitted to `dist-scripts/` via `tsconfig.scripts.json`).
-- **No banned constructs.** `as`, `any`, `!`, `@ts-ignore` / `@ts-nocheck` / `@ts-expect-error`, and `.forEach` are lint errors.
-- **Deterministic tests.** Clocks and timers are injected. No sleeps.
-
-The spec is [`docs/mvp.md`](docs/mvp.md). Amendments in [`docs/decisions.md`](docs/decisions.md) win when they conflict.
-
----
-
-## Repository layout
+### Repository layout
 
 ```text
 src/
@@ -369,7 +369,7 @@ src/
   snapshot/      a11y snapshot, outline, overlay
   tasks/         TaskStore + TaskRunner
   tools/         defineTool, desk tools, observe, list_calls
-  cli.ts         process entry: MCP, --http, compile, run
+  cli.ts         process entry: compile, run, MCP, --http
 docs/
   mvp.md         product plan and engineering gates
   decisions.md   amendments (win over mvp.md)
